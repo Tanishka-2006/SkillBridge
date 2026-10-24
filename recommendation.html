@@ -1,0 +1,582 @@
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#172554">
+
+    <title>SkillBridge | Project Recommendations</title>
+
+    <link rel="stylesheet" href="CSS/style.css">
+
+    <!-- Protect direct access to this page -->
+    <script>
+        if (localStorage.getItem("assessmentCompleted") !== "true") {
+            window.location.replace("assessment.html");
+        }
+    </script>
+
+    <style>
+        :root {
+            --sb-navy: #172554;
+            --sb-blue: #3156a6;
+            --sb-blue-light: #eef4ff;
+            --sb-text: #1e293b;
+            --sb-muted: #64748b;
+            --sb-border: #e5eaf2;
+            --sb-surface: #ffffff;
+            --sb-page: #f6f8fc;
+        }
+
+        body {
+            background: var(--sb-page);
+            color: var(--sb-text);
+        }
+
+        /* NAVIGATION */
+
+        .sb-rec-page .navbar {
+            background: rgba(255, 255, 255, 0.97);
+            border-bottom: 1px solid var(--sb-border);
+            box-shadow: 0 4px 20px rgba(23, 37, 84, 0.04);
+            padding: 16px 5%;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .sb-rec-page .logo {
+            color: var(--sb-navy);
+            font-size: 25px;
+            font-weight: 800;
+            letter-spacing: -0.8px;
+        }
+
+        .sb-rec-page .nav-links a {
+            transition: color 0.2s ease, background 0.2s ease;
+            border-radius: 8px;
+        }
+
+        .sb-rec-page .nav-links a:hover,
+        .sb-rec-page .nav-links a.active {
+            color: var(--sb-blue);
+            background: var(--sb-blue-light);
+        }
+
+        /* PAGE LAYOUT */
+
+        .sb-rec-page .projects-page {
+            width: min(1180px, 91%);
+            margin: 0 auto;
+            padding: 42px 0 80px;
+        }
+
+        .sb-rec-page .projects-header {
+            position: relative;
+            overflow: hidden;
+            background: linear-gradient(125deg, #172554, #263f7c 65%, #4265ac);
+            color: #ffffff;
+            border-radius: 24px;
+            padding: clamp(30px, 5vw, 58px);
+            margin-bottom: 26px;
+            box-shadow: 0 16px 38px rgba(23, 37, 84, 0.13);
+        }
+
+        .sb-rec-page .projects-header::after {
+            content: "";
+            position: absolute;
+            width: 260px;
+            height: 260px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 50%;
+            right: -70px;
+            top: -100px;
+            box-shadow:
+                0 0 0 30px rgba(255, 255, 255, 0.035),
+                0 0 0 65px rgba(255, 255, 255, 0.025);
+            pointer-events: none;
+        }
+
+        .sb-rec-page .section-label {
+            display: inline-block;
+            color: #5274bd;
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 1.8px;
+            line-height: 1.7;
+            text-transform: uppercase;
+        }
+
+        .sb-rec-page .projects-header .section-label {
+            color: #c7d7ff;
+            margin-bottom: 13px;
+        }
+
+        .sb-rec-page .projects-header h1 {
+            position: relative;
+            z-index: 1;
+            max-width: 700px;
+            margin: 0 0 15px;
+            color: #ffffff;
+            font-size: clamp(30px, 4.5vw, 46px);
+            line-height: 1.15;
+            letter-spacing: -1.4px;
+        }
+
+        .sb-rec-page .projects-header p {
+            position: relative;
+            z-index: 1;
+            max-width: 650px;
+            margin: 0;
+            color: #e0e8ff;
+            font-size: 15px;
+            line-height: 1.9;
+        }
+
+        /* DOMAIN SUMMARY */
+
+        .sb-rec-page .project-domain-info {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+            background: var(--sb-surface);
+            border: 1px solid var(--sb-border);
+            border-radius: 18px;
+            padding: 24px 28px;
+            margin-bottom: 18px;
+            box-shadow: 0 5px 18px rgba(23, 37, 84, 0.035);
+        }
+
+        .sb-rec-page .project-domain-info span {
+            display: block;
+            color: var(--sb-muted);
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 7px;
+        }
+
+        .sb-rec-page .project-domain-info h2 {
+            margin: 0;
+            color: var(--sb-navy);
+            font-size: 23px;
+            letter-spacing: -0.5px;
+        }
+
+        /* ASSESSMENT INSIGHTS */
+
+        .sb-rec-page .recommendation-summary {
+            display: flex;
+            align-items: flex-start;
+            gap: 18px;
+            background: #eef4ff;
+            border: 1px solid #dce7ff;
+            border-radius: 18px;
+            padding: 25px 28px;
+            margin-bottom: 52px;
+        }
+
+        .sb-rec-page .recommendation-icon {
+            display: grid;
+            place-items: center;
+            flex: 0 0 48px;
+            width: 48px;
+            height: 48px;
+            background: #ffffff;
+            border: 1px solid #dce7ff;
+            border-radius: 14px;
+            font-size: 23px;
+        }
+
+        .sb-rec-page .recommendation-summary h2 {
+            margin: 1px 0 9px;
+            color: var(--sb-navy);
+            font-size: 20px;
+        }
+
+        .sb-rec-page .recommendation-summary p {
+            margin: 0;
+            color: #475569;
+            font-size: 14px;
+            line-height: 1.8;
+        }
+
+        /* CONTENT SECTIONS */
+
+        .sb-rec-page .projects-section {
+            margin: 0 0 54px;
+            scroll-margin-top: 100px;
+        }
+
+        .sb-rec-page .section-heading {
+            margin-bottom: 22px;
+        }
+
+        .sb-rec-page .section-heading .section-label {
+            margin-bottom: 7px;
+        }
+
+        .sb-rec-page .section-heading h2 {
+            margin: 0 0 10px;
+            color: var(--sb-navy);
+            font-size: clamp(23px, 3vw, 29px);
+            line-height: 1.3;
+            letter-spacing: -0.7px;
+        }
+
+        .sb-rec-page .section-heading p {
+            max-width: 730px;
+            margin: 0;
+            color: var(--sb-muted);
+            font-size: 14px;
+            line-height: 1.8;
+        }
+
+        /* DYNAMIC CARDS CREATED BY SCRIPT.JS */
+
+        .sb-rec-page .project-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 20px;
+            align-items: stretch;
+        }
+
+        .sb-rec-page .project-grid > div {
+            min-width: 0;
+            box-sizing: border-box;
+            background: #ffffff;
+            border: 1px solid var(--sb-border);
+            border-radius: 17px;
+            padding: 23px;
+            box-shadow: 0 5px 18px rgba(23, 37, 84, 0.035);
+            transition: transform 0.22s ease,
+                        box-shadow 0.22s ease,
+                        border-color 0.22s ease;
+        }
+
+        .sb-rec-page .project-grid > div:hover {
+            transform: translateY(-4px);
+            border-color: #c7d7f8;
+            box-shadow: 0 13px 28px rgba(23, 37, 84, 0.09);
+        }
+
+        .sb-rec-page .project-grid h3 {
+            color: var(--sb-navy);
+            font-size: 17px;
+            line-height: 1.5;
+            margin-top: 0;
+            margin-bottom: 11px;
+        }
+
+        .sb-rec-page .project-grid h4 {
+            color: var(--sb-navy);
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+
+        .sb-rec-page .project-grid p,
+        .sb-rec-page .project-grid li {
+            color: var(--sb-muted);
+            font-size: 13px;
+            line-height: 1.8;
+            overflow-wrap: anywhere;
+        }
+
+        .sb-rec-page .project-grid ul {
+            padding-left: 19px;
+        }
+
+        .sb-rec-page .project-grid a {
+            color: var(--sb-blue);
+            font-weight: 700;
+            text-decoration: none;
+            overflow-wrap: anywhere;
+        }
+
+        .sb-rec-page .project-grid a:hover {
+            text-decoration: underline;
+        }
+
+        .sb-rec-page .project-grid button {
+            cursor: pointer;
+        }
+
+        .sb-rec-page .project-grid > p {
+            grid-column: 1 / -1;
+            background: #ffffff;
+            border: 1px dashed #cbd5e1;
+            border-radius: 14px;
+            padding: 22px;
+        }
+
+        /* ROADMAP */
+
+        #learningRoadmap {
+            counter-reset: roadmap-step;
+        }
+
+        #learningRoadmap > div {
+            position: relative;
+        }
+
+        /* FOOTER */
+
+        .sb-rec-page .sb-rec-footer {
+            border-top: 1px solid var(--sb-border);
+            padding: 25px 15px 10px;
+            text-align: center;
+            color: var(--sb-muted);
+            font-size: 12px;
+            line-height: 1.8;
+        }
+
+        .sb-rec-page .sb-rec-footer strong {
+            color: var(--sb-navy);
+        }
+
+        /* RESPONSIVE */
+
+        @media (max-width: 950px) {
+            .sb-rec-page .project-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .sb-rec-page .navbar {
+                padding: 14px 4%;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .sb-rec-page .projects-page {
+                width: 92%;
+                padding-top: 24px;
+            }
+
+            .sb-rec-page .projects-header {
+                border-radius: 18px;
+                padding: 30px 23px;
+            }
+
+            .sb-rec-page .project-domain-info {
+                padding: 21px;
+            }
+
+            .sb-rec-page .recommendation-summary {
+                padding: 21px;
+                gap: 13px;
+                margin-bottom: 40px;
+            }
+
+            .sb-rec-page .recommendation-icon {
+                flex-basis: 40px;
+                width: 40px;
+                height: 40px;
+            }
+
+            .sb-rec-page .project-grid {
+                grid-template-columns: minmax(0, 1fr);
+                gap: 14px;
+            }
+
+            .sb-rec-page .projects-section {
+                margin-bottom: 42px;
+            }
+
+            .sb-rec-page .project-grid > div {
+                padding: 20px;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .sb-rec-page *,
+            .sb-rec-page *::before,
+            .sb-rec-page *::after {
+                scroll-behavior: auto !important;
+                transition: none !important;
+            }
+        }
+    </style>
+</head>
+
+<body class="sb-rec-page">
+
+    <!-- NAVBAR -->
+    <header class="navbar">
+        <div class="logo">SkillBridge</div>
+
+        <nav class="nav-links">
+            <a href="index.html">Home</a>
+            <a href="domain.html">Choose Your Domain</a>
+            <a href="skills.html">Skills</a>
+            <a href="assessment.html">Self-Assessment</a>
+            <a href="progress.html">Progress Report</a>
+            <a href="recommendation.html" id="projectLink" class="active">
+                Project Recommendation
+            </a>
+        </nav>
+    </header>
+
+    <main class="projects-page">
+
+        <!-- HERO -->
+        <section class="projects-header">
+            <span class="section-label">YOUR PERSONALIZED LEARNING SPACE</span>
+
+            <h1>Your next step starts here.</h1>
+
+            <p>
+                Turn your assessment insights into practical skills.
+                Explore projects, discover trusted resources, and follow
+                a learning roadmap designed to help you move forward.
+            </p>
+        </section>
+
+        <!-- SELECTED DOMAIN -->
+        <section class="project-domain-info">
+            <div>
+                <span>YOUR SELECTED CAREER DOMAIN</span>
+                <h2 id="projectDomain">Loading domain...</h2>
+            </div>
+        </section>
+
+        <!-- ASSESSMENT INSIGHTS -->
+        <section class="recommendation-summary">
+            <div class="recommendation-icon">🎯</div>
+
+            <div>
+                <h2>Your Assessment Insights</h2>
+                <p id="recommendationMessage">
+                    Loading your assessment results...
+                </p>
+            </div>
+        </section>
+
+        <!-- SKILLS -->
+        <section class="projects-section">
+            <div class="section-heading">
+                <span class="section-label">01 / LEARNING PRIORITIES</span>
+                <h2>Skills to Learn and Improve</h2>
+                <p>
+                    Focus on the skills that need more attention.
+                    Build your foundations first, then gradually work
+                    towards intermediate and advanced concepts.
+                </p>
+            </div>
+
+            <div id="recommendedSkills" class="project-grid">
+                <p>Loading recommended skills...</p>
+            </div>
+        </section>
+
+        <!-- PROJECT RECOMMENDATIONS -->
+        <section class="projects-section">
+            <div class="section-heading">
+                <span class="section-label">02 / BUILD YOUR EXPERIENCE</span>
+                <h2>Projects Worth Building</h2>
+                <p>
+                    Apply what you learn through practical projects.
+                    Use the project difficulty and required skills to
+                    choose a suitable next challenge.
+                </p>
+            </div>
+
+            <div id="projectGrid" class="project-grid">
+                <p>Loading project recommendations...</p>
+            </div>
+        </section>
+
+        <!-- OFFICIAL DOCUMENTATION -->
+        <section class="projects-section">
+            <div class="section-heading">
+                <span class="section-label">03 / LEARN THE CONCEPTS</span>
+                <h2>Official Documentation</h2>
+                <p>
+                    Learn concepts from official documentation and
+                    trusted sources to develop a strong foundation.
+                </p>
+            </div>
+
+            <div id="officialResources" class="project-grid">
+                <p>Loading official learning resources...</p>
+            </div>
+        </section>
+
+        <!-- YOUTUBE -->
+        <section class="projects-section">
+            <div class="section-heading">
+                <span class="section-label">04 / WATCH AND UNDERSTAND</span>
+                <h2>Video Learning</h2>
+                <p>
+                    Explore tutorials and demonstrations that help you
+                    understand concepts and see how they work in practice.
+                </p>
+            </div>
+
+            <div id="youtubeResources" class="project-grid">
+                <p>Loading YouTube resources...</p>
+            </div>
+        </section>
+
+        <!-- GOOGLE SEARCH -->
+        <section class="projects-section">
+            <div class="section-heading">
+                <span class="section-label">05 / EXPLORE FURTHER</span>
+                <h2>Explore Learning Topics</h2>
+                <p>
+                    Find additional explanations, examples, notes,
+                    interview questions, and solutions for your skills.
+                </p>
+            </div>
+
+            <div id="googleResources" class="project-grid">
+                <p>Loading Google learning links...</p>
+            </div>
+        </section>
+
+        <!-- PRACTICE PLATFORMS -->
+        <section class="projects-section">
+            <div class="section-heading">
+                <span class="section-label">06 / LEARN BY DOING</span>
+                <h2>Practice and Improve</h2>
+                <p>
+                    Strengthen your understanding with exercises,
+                    coding challenges, guided labs, and hands-on practice.
+                </p>
+            </div>
+
+            <div id="practiceResources" class="project-grid">
+                <p>Loading practice platforms...</p>
+            </div>
+        </section>
+
+        <!-- ROADMAP -->
+        <section class="projects-section">
+            <div class="section-heading">
+                <span class="section-label">07 / YOUR NEXT STEPS</span>
+                <h2>Your Learning Roadmap</h2>
+                <p>
+                    Follow a clear learning path and work through each
+                    stage at a pace that suits your current knowledge.
+                </p>
+            </div>
+
+            <div id="learningRoadmap" class="project-grid">
+                <p>Preparing your learning roadmap...</p>
+            </div>
+        </section>
+
+        <footer class="sb-rec-footer">
+            <strong>SkillBridge</strong> — Learn with direction. Build with confidence.
+        </footer>
+
+    </main>
+
+    <!-- Keep the existing JavaScript file -->
+    <script src="JS/script.js"></script>
+
+</body>
+</html>

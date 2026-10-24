@@ -1,0 +1,326 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Choose Your Domain | SkillBridge</title>
+    <link rel="stylesheet" href="CSS/style.css">
+
+    <style>
+        .domain-page {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 24px 60px;
+        }
+
+        .domain-heading {
+            text-align: center;
+            margin-bottom: 35px;
+        }
+
+        .domain-heading h1 {
+            font-size: clamp(28px, 4vw, 42px);
+            margin-bottom: 12px;
+            color: #172554;
+        }
+
+        .domain-heading p {
+            color: #64748b;
+            font-size: 16px;
+            line-height: 1.7;
+        }
+
+        .domain-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 22px;
+        }
+
+        .domain-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 18px;
+            padding: 25px 22px;
+            cursor: pointer;
+            transition: transform 0.2s ease, border-color 0.2s ease,
+                        box-shadow 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            min-height: 225px;
+            box-shadow: 0 4px 15px rgba(15, 23, 42, 0.04);
+        }
+
+        .domain-card:hover {
+            transform: translateY(-4px);
+            border-color: #6366f1;
+            box-shadow: 0 10px 25px rgba(79, 70, 229, 0.10);
+        }
+
+        .domain-card.selected {
+            border: 2px solid #4f46e5;
+            background: #f5f7ff;
+            box-shadow: 0 8px 24px rgba(79, 70, 229, 0.12);
+        }
+
+        .domain-card.unavailable-domain {
+            opacity: 0.55;
+            cursor: not-allowed;
+        }
+
+        .domain-icon {
+            width: 52px;
+            height: 52px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 14px;
+            background: #eef2ff;
+            font-size: 27px;
+            margin-bottom: 18px;
+        }
+
+        .domain-card h2 {
+            color: #1e293b;
+            font-size: 19px;
+            line-height: 1.4;
+            margin: 0 0 9px;
+        }
+
+        .domain-card p {
+            color: #64748b;
+            font-size: 14px;
+            line-height: 1.6;
+            margin: 0 0 18px;
+            flex-grow: 1;
+        }
+
+        .domain-select-btn {
+            padding: 9px 16px;
+            background: #eef2ff;
+            color: #4338ca;
+            border: 1px solid #c7d2fe;
+            border-radius: 9px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .domain-card.selected .domain-select-btn {
+            background: #4f46e5;
+            border-color: #4f46e5;
+            color: #ffffff;
+        }
+
+        .domain-select-btn:disabled {
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        .domain-footer {
+            margin-top: 35px;
+            padding: 25px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .domain-footer p {
+            margin: 5px 0;
+            color: #64748b;
+        }
+
+        #selectedDomainText {
+            color: #4338ca;
+            font-weight: 700;
+        }
+
+        #continueSkillsBtn {
+            border: none;
+            border-radius: 10px;
+            padding: 13px 24px;
+            background: #4f46e5;
+            color: #ffffff;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        #continueSkillsBtn:hover:not(:disabled) {
+            background: #3730a3;
+        }
+
+        #continueSkillsBtn:disabled {
+            background: #a5b4fc;
+            cursor: not-allowed;
+        }
+
+        @media (max-width: 900px) {
+            .domain-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 560px) {
+            .domain-page {
+                padding: 28px 15px 40px;
+            }
+
+            .domain-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .domain-footer {
+                align-items: stretch;
+                flex-direction: column;
+            }
+
+            #continueSkillsBtn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Navbar -->
+    <header class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="logo">SkillBridge</a>
+
+            <nav class="nav-links" aria-label="Main navigation">
+                <a href="index.html">Home</a>
+                <a href="domain.html">Explore Domains</a>
+                <a href="skills.html">Skills</a>
+                <a href="progress.html">Progress</a>
+                <a href="recommendation.html" id="projectLink">
+                    Project Recommendations
+                </a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="domain-page">
+
+        <section class="domain-heading">
+            <h1>Choose Your Career Domain</h1>
+            <p>
+                Discover the skills you need, assess your knowledge,
+                and build a learning roadmap for your career.
+            </p>
+            <p>Select one domain to continue.</p>
+        </section>
+
+        <section class="domain-grid" aria-label="Career domains">
+
+            <article class="domain-card" data-domain="Web Development">
+                <div class="domain-icon">🌐</div>
+                <h2>Web Development</h2>
+                <p>Learn to create responsive websites and interactive web applications.</p>
+                <button type="button" class="domain-select-btn">Select Domain</button>
+            </article>
+
+            <article class="domain-card" data-domain="Data Analytics">
+                <div class="domain-icon">📊</div>
+                <h2>Data Analytics</h2>
+                <p>Turn data into insights using SQL, Excel, Python and dashboards.</p>
+                <button type="button" class="domain-select-btn">Select Domain</button>
+            </article>
+
+            <article class="domain-card" data-domain="AI & Machine Learning">
+                <div class="domain-icon">🤖</div>
+                <h2>AI &amp; Machine Learning</h2>
+                <p>Explore intelligent systems, machine learning models and AI tools.</p>
+                <button type="button" class="domain-select-btn">Select Domain</button>
+            </article>
+
+            <article class="domain-card" data-domain="App Development">
+                <div class="domain-icon">📱</div>
+                <h2>App Development</h2>
+                <p>Build mobile applications and user-friendly digital experiences.</p>
+                <button type="button" class="domain-select-btn">Select Domain</button>
+            </article>
+
+            <article class="domain-card" data-domain="Cybersecurity">
+                <div class="domain-icon">🔐</div>
+                <h2>Cybersecurity</h2>
+                <p>Learn security fundamentals, threat detection and safe system practices.</p>
+                <button type="button" class="domain-select-btn">Select Domain</button>
+            </article>
+
+            <article class="domain-card" data-domain="Cloud Computing">
+                <div class="domain-icon">☁️</div>
+                <h2>Cloud Computing</h2>
+                <p>Understand cloud platforms, deployment, storage and infrastructure.</p>
+                <button type="button" class="domain-select-btn">Select Domain</button>
+            </article>
+
+            <article class="domain-card" data-domain="Database & SQL">
+                <div class="domain-icon">🗄️</div>
+                <h2>Database &amp; SQL</h2>
+                <p>Design databases and query, organise and manage structured data.</p>
+                <button type="button" class="domain-select-btn">Select Domain</button>
+            </article>
+
+            <article class="domain-card" data-domain="Software Development">
+                <div class="domain-icon">💻</div>
+                <h2>Software Development</h2>
+                <p>Build maintainable software using programming and development practices.</p>
+                <button type="button" class="domain-select-btn">Select Domain</button>
+            </article>
+
+            <article class="domain-card" data-domain="UI/UX Design">
+                <div class="domain-icon">🎨</div>
+                <h2>UI/UX Design</h2>
+                <p>Design useful, accessible and visually consistent user experiences.</p>
+                <button type="button" class="domain-select-btn">Select Domain</button>
+            </article>
+
+            <article class="domain-card" data-domain="DevOps & Automation">
+                <div class="domain-icon">⚙️</div>
+                <h2>DevOps &amp; Automation</h2>
+                <p>Explore deployment pipelines, automation, containers and CI/CD.</p>
+                <button type="button" class="domain-select-btn">Select Domain</button>
+            </article>
+
+            <article class="domain-card" data-domain="Blockchain Development">
+                <div class="domain-icon">⛓️</div>
+                <h2>Blockchain Development</h2>
+                <p>Understand distributed ledgers, smart contracts and blockchain applications.</p>
+                <button type="button" class="domain-select-btn">Select Domain</button>
+            </article>
+
+            <article class="domain-card" data-domain="Data Science">
+                <div class="domain-icon">📈</div>
+                <h2>Data Science</h2>
+                <p>Combine statistics, programming and modelling to explore complex data.</p>
+                <button type="button" class="domain-select-btn">Select Domain</button>
+            </article>
+
+        </section>
+
+        <section class="domain-footer">
+            <div>
+                <p>Selected domain</p>
+                <h2 id="selectedDomainText" aria-live="polite">Select a domain</h2>
+                <p>Your selected domain will determine which skills you see next.</p>
+            </div>
+
+            <button type="button" id="continueSkillsBtn" disabled>
+                Continue to Skills →
+            </button>
+        </section>
+
+    </main>
+
+    <script src="JS/script.js"></script>
+
+</body>
+</html>

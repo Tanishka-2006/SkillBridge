@@ -1,0 +1,61 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Skills - SkillBridge</title>
+    <link rel="stylesheet" href="CSS/style.css">
+</head>
+<body>
+
+    <nav class="navbar">
+        <div class="logo">SkillBridge</div>
+
+        <div class="nav-links">
+            <a href="index.html">Home</a>
+            <a href="domain.html">Choose Domain</a>
+            <a href="skills.html" class="active">Skills</a>
+            <a href="assessment.html">Self-Assessment</a>
+            <a href="progress.html">Progress Report</a>
+            <a href="projects.html" id="projectLink">Project Recommendation</a>
+        </div>
+    </nav>
+
+    <main class="skills-page">
+        <section class="page-header">
+            <p>STEP 2 OF YOUR SKILL JOURNEY</p>
+            <h1>Skills You'll Need</h1>
+            <p>
+                Select the skills you already know. SkillBridge will help
+                you identify what you need to learn next.
+            </p>
+            <p>Selected Domain: <strong id="currentDomain">Loading...</strong></p>
+        </section>
+
+        <section class="skill-level-section">
+            <h2>Basic Skills</h2>
+            <div class="skills-grid" id="basicSkills"></div>
+        </section>
+
+        <section class="skill-level-section">
+            <h2>Intermediate Skills</h2>
+            <div class="skills-grid" id="intermediateSkills"></div>
+        </section>
+
+        <section class="skill-level-section">
+            <h2>Advanced Skills</h2>
+            <div class="skills-grid" id="advancedSkills"></div>
+        </section>
+
+        <section class="skill-summary">
+            <h3 id="selectedSkillsCount">0 Skills Selected</h3>
+            <button id="continueAssessmentBtn" class="primary-btn" disabled>
+                Continue to Self-Assessment →
+            </button>
+        </section>
+    </main>
+
+    <script src="JS/script.js"></script>
+</body>
+</html>
