@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 
@@ -7,13 +8,13 @@
 
     <title>Progress Report - SkillBridge</title>
 
-    <link rel="stylesheet" href="CSS/style.css">
+    <!-- Correct CSS path -->
+    <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
 
-    <!-- ================= NAVBAR ================= -->
-
+    <!-- NAVBAR -->
     <nav class="navbar">
 
         <div class="logo">
@@ -21,263 +22,136 @@
         </div>
 
         <div class="nav-links">
-
             <a href="index.html">Home</a>
-
-            <a href="domain.html">
-                Choose Your Domain
-            </a>
-
-            <a href="skills.html">
-                Skills
-            </a>
-
-            <a href="assessment.html">
-                Self-Assessment
-            </a>
-
-            <a href="progress.html" class="active">
-                Progress Report
-            </a>
-
-            <a href="projects.html" id="projectLink">
+            <a href="domain.html">Choose Your Domain</a>
+            <a href="skills.html">Skills</a>
+            <a href="assessment.html">Self-Assessment</a>
+            <a href="progress.html" class="active">Progress Report</a>
+            <a href="recommendation.html" id="projectLink">
                 🔒 Project Recommendation
             </a>
-
         </div>
 
     </nav>
 
-
-    <!-- ================= PAGE ================= -->
-
+    <!-- PROGRESS PAGE -->
     <main class="progress-page">
 
-        <!-- Header -->
-
+        <!-- HEADER -->
         <section class="progress-header">
 
             <div>
+                <span class="page-label">YOUR PERFORMANCE</span>
 
-                <span class="page-label">
-                    YOUR PERFORMANCE
-                </span>
-
-                <h1>
-                    Progress Report
-                </h1>
+                <h1>Progress Report</h1>
 
                 <p>
-                    Here's how you performed in your
-                    skill assessment.
+                    Here's how you performed in your skill assessment.
                 </p>
-
             </div>
 
             <div class="progress-domain-card">
-
                 <span>Career Domain</span>
-
-                <strong id="progressDomain">
-                    Loading...
-                </strong>
-
+                <strong id="progressDomain">Loading...</strong>
             </div>
 
         </section>
 
-
-        <!-- ================= OVERVIEW CARDS ================= -->
-
+        <!-- OVERVIEW CARDS -->
         <section class="progress-overview">
 
             <div class="progress-stat-card">
-
-                <div class="stat-icon">
-                    🎯
-                </div>
-
+                <div class="stat-icon">🎯</div>
                 <div>
                     <span>Overall Progress</span>
-
-                    <h2 id="overallPercentage">
-                        0%
-                    </h2>
+                    <h2 id="overallPercentage">0%</h2>
                 </div>
-
             </div>
 
-
             <div class="progress-stat-card">
-
-                <div class="stat-icon">
-                    ✅
-                </div>
-
+                <div class="stat-icon">✅</div>
                 <div>
                     <span>Correct Answers</span>
-
-                    <h2 id="correctAnswers">
-                        0
-                    </h2>
+                    <h2 id="correctAnswers">0</h2>
                 </div>
-
             </div>
 
-
             <div class="progress-stat-card">
-
-                <div class="stat-icon">
-                    📝
-                </div>
-
+                <div class="stat-icon">📝</div>
                 <div>
                     <span>Questions Attempted</span>
-
-                    <h2 id="totalQuestions">
-                        0
-                    </h2>
+                    <h2 id="totalQuestions">0</h2>
                 </div>
-
             </div>
 
-
             <div class="progress-stat-card">
-
-                <div class="stat-icon">
-                    📚
-                </div>
-
+                <div class="stat-icon">📚</div>
                 <div>
                     <span>Skills Assessed</span>
-
-                    <h2 id="skillsAssessed">
-                        0
-                    </h2>
+                    <h2 id="skillsAssessed">0</h2>
                 </div>
-
             </div>
 
         </section>
 
-
-        <!-- ================= MAIN DASHBOARD ================= -->
-
+        <!-- MAIN DASHBOARD -->
         <section class="progress-dashboard">
 
-
-            <!-- LEFT -->
-
+            <!-- SKILL PERFORMANCE -->
             <div class="progress-main-card">
 
                 <div class="section-heading">
-
                     <div>
-
-                        <h2>
-                            Skill-wise Performance
-                        </h2>
-
+                        <h2>Skill-wise Performance</h2>
                         <p>
-                            Your understanding across
-                            the skills you assessed.
+                            Your understanding across the skills you assessed.
                         </p>
-
                     </div>
-
                 </div>
 
-
                 <div id="skillProgressList">
-
                     <!-- Skill cards generated by JavaScript -->
-
                 </div>
 
             </div>
 
-
-            <!-- RIGHT -->
-
+            <!-- RIGHT SIDEBAR -->
             <div class="progress-side">
-
-
-                <!-- Overall Progress -->
 
                 <div class="overall-progress-card">
 
-                    <h2>
-                        Overall Understanding
-                    </h2>
+                    <h2>Overall Understanding</h2>
 
                     <div class="progress-circle">
-
                         <div class="progress-circle-inner">
-
-                            <strong id="circlePercentage">
-                                0%
-                            </strong>
-
-                            <span>
-                                Overall
-                            </span>
-
+                            <strong id="circlePercentage">0%</strong>
+                            <span>Overall</span>
                         </div>
-
                     </div>
 
                     <p id="overallMessage">
-                        Complete your assessment
-                        to see your progress.
+                        Complete your assessment to see your progress.
                     </p>
 
                 </div>
-
-
-                <!-- Performance Summary -->
 
                 <div class="performance-summary">
 
-                    <h2>
-                        Performance Summary
-                    </h2>
+                    <h2>Performance Summary</h2>
 
                     <div class="summary-item">
-
-                        <span>
-                            🟢 Strong Skills
-                        </span>
-
-                        <strong id="strongSkillsCount">
-                            0
-                        </strong>
-
+                        <span>🟢 Strong Skills</span>
+                        <strong id="strongSkillsCount">0</strong>
                     </div>
 
-
                     <div class="summary-item">
-
-                        <span>
-                            🟡 Needs Improvement
-                        </span>
-
-                        <strong id="improvementSkillsCount">
-                            0
-                        </strong>
-
+                        <span>🟡 Needs Improvement</span>
+                        <strong id="improvementSkillsCount">0</strong>
                     </div>
 
-
                     <div class="summary-item">
-
-                        <span>
-                            🔴 Focus Areas
-                        </span>
-
-                        <strong id="weakSkillsCount">
-                            0
-                        </strong>
-
+                        <span>🔴 Focus Areas</span>
+                        <strong id="weakSkillsCount">0</strong>
                     </div>
 
                 </div>
@@ -286,66 +160,36 @@
 
         </section>
 
-
-        <!-- ================= PREPARATION PLAN ================= -->
-
+        <!-- PREPARATION PLAN -->
         <section class="preparation-section">
 
             <div class="preparation-header">
-
                 <div>
-
-                    <span class="page-label">
-                        NEXT STEPS
-                    </span>
-
-                    <h2>
-                        Your Preparation Plan
-                    </h2>
-
+                    <span class="page-label">NEXT STEPS</span>
+                    <h2>Your Preparation Plan</h2>
                     <p>
-                        Focus on the areas where you
-                        can improve the most.
+                        Focus on the areas where you can improve the most.
                     </p>
-
                 </div>
-
             </div>
 
-
-            <div
-                id="preparationCards"
-                class="preparation-grid"
-            >
-
+            <div id="preparationCards" class="preparation-grid">
                 <!-- Generated by JavaScript -->
-
             </div>
 
         </section>
 
-
-        <!-- ================= ACTION ================= -->
-
+        <!-- NEXT STEP ACTION -->
         <section class="progress-action">
 
             <div>
-
-                <h2>
-                    Ready for the next step?
-                </h2>
-
+                <h2>Ready for the next step?</h2>
                 <p>
-                    Build a personalized learning
-                    roadmap based on your results.
+                    Build a personalized learning roadmap based on your results.
                 </p>
-
             </div>
 
-            <button
-                id="roadmapBtn"
-                class="primary-btn"
-            >
+            <button id="roadmapBtn" class="primary-btn" type="button">
                 Continue to Roadmap →
             </button>
 
@@ -353,9 +197,8 @@
 
     </main>
 
-
-    <script src="JS/script.js"></script>
+    <!-- Correct JavaScript path -->
+    <script src="script.js"></script>
 
 </body>
-
 </html>
