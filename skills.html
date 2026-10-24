@@ -1,12 +1,538 @@
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Your Skills - SkillBridge</title>
+    <meta name="theme-color" content="#172554">
+
+    <title>Your Skills | SkillBridge</title>
+
     <link rel="stylesheet" href="style.css">
+
+    <style>
+        :root {
+            --navy: #172554;
+            --blue: #3156a6;
+            --blue-light: #eef4ff;
+            --text: #1e293b;
+            --muted: #64748b;
+            --border: #e5eaf2;
+            --page: #f6f8fc;
+            --white: #ffffff;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            background: var(--page);
+            color: var(--text);
+            font-family: Inter, "Segoe UI", Arial, sans-serif;
+        }
+
+        /* NAVIGATION */
+
+        .navbar {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 18px;
+            padding: 17px 5%;
+            background: rgba(255, 255, 255, 0.97);
+            border-bottom: 1px solid var(--border);
+            box-shadow: 0 3px 15px rgba(23, 37, 84, 0.04);
+        }
+
+        .logo {
+            color: var(--navy);
+            font-size: 25px;
+            font-weight: 800;
+            letter-spacing: -0.8px;
+            white-space: nowrap;
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .nav-links a {
+            padding: 10px 12px;
+            border-radius: 9px;
+            color: #475569;
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 600;
+            transition: 0.2s ease;
+        }
+
+        .nav-links a:hover,
+        .nav-links a.active {
+            background: var(--blue-light);
+            color: var(--blue);
+        }
+
+        /* MAIN CONTENT */
+
+        .skills-page {
+            width: min(1160px, 92%);
+            margin: 0 auto;
+            padding: 38px 0 110px;
+        }
+
+        /* HERO */
+
+        .page-header {
+            position: relative;
+            overflow: hidden;
+            padding: clamp(30px, 5vw, 52px);
+            margin-bottom: 34px;
+            border-radius: 24px;
+            background: linear-gradient(125deg, #172554, #263f7c 65%, #4265ac);
+            color: var(--white);
+            box-shadow: 0 14px 34px rgba(23, 37, 84, 0.13);
+        }
+
+        .page-header::after {
+            content: "";
+            position: absolute;
+            width: 230px;
+            height: 230px;
+            right: -65px;
+            top: -100px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 50%;
+            box-shadow:
+                0 0 0 28px rgba(255, 255, 255, 0.035),
+                0 0 0 58px rgba(255, 255, 255, 0.025);
+            pointer-events: none;
+        }
+
+        .step-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 18px;
+            padding: 8px 12px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 30px;
+            background: rgba(255, 255, 255, 0.09);
+            color: #dce7ff;
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 1.2px;
+        }
+
+        .page-header h1 {
+            position: relative;
+            z-index: 1;
+            max-width: 700px;
+            margin: 0 0 14px;
+            color: #ffffff;
+            font-size: clamp(32px, 5vw, 46px);
+            line-height: 1.15;
+            letter-spacing: -1.4px;
+        }
+
+        .hero-description {
+            position: relative;
+            z-index: 1;
+            max-width: 650px;
+            margin: 0;
+            color: #e0e8ff;
+            font-size: 15px;
+            line-height: 1.9;
+        }
+
+        .domain-chip {
+            position: relative;
+            z-index: 1;
+            display: inline-flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
+            margin-top: 24px;
+            padding: 12px 16px;
+            border: 1px solid rgba(255, 255, 255, 0.17);
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.1);
+            font-size: 13px;
+        }
+
+        .domain-chip span {
+            color: #c7d7ff;
+        }
+
+        .domain-chip strong {
+            color: #ffffff;
+        }
+
+        /* INSTRUCTIONS */
+
+        .selection-guide {
+            display: flex;
+            align-items: flex-start;
+            gap: 14px;
+            margin-bottom: 38px;
+            padding: 20px 22px;
+            border: 1px solid #dce7ff;
+            border-radius: 15px;
+            background: #eef4ff;
+        }
+
+        .guide-icon {
+            display: grid;
+            flex-shrink: 0;
+            place-items: center;
+            width: 40px;
+            height: 40px;
+            border: 1px solid #dce7ff;
+            border-radius: 12px;
+            background: #ffffff;
+            font-size: 19px;
+        }
+
+        .selection-guide h2 {
+            margin: 0 0 6px;
+            color: var(--navy);
+            font-size: 15px;
+        }
+
+        .selection-guide p {
+            margin: 0;
+            color: #52627b;
+            font-size: 13px;
+            line-height: 1.8;
+        }
+
+        /* SKILL LEVEL SECTIONS */
+
+        .skill-level-section {
+            margin-bottom: 38px;
+            padding: 28px;
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            background: #ffffff;
+            box-shadow: 0 5px 22px rgba(23, 37, 84, 0.035);
+        }
+
+        .level-heading {
+            display: flex;
+            align-items: flex-start;
+            gap: 14px;
+            margin-bottom: 24px;
+        }
+
+        .level-icon {
+            display: grid;
+            flex-shrink: 0;
+            place-items: center;
+            width: 45px;
+            height: 45px;
+            border-radius: 13px;
+            font-size: 19px;
+        }
+
+        .basic .level-icon {
+            color: #18794e;
+            background: #e8f7ef;
+        }
+
+        .intermediate .level-icon {
+            color: #946200;
+            background: #fff4d6;
+        }
+
+        .advanced .level-icon {
+            color: #a33d45;
+            background: #fff0f0;
+        }
+
+        .level-heading h2 {
+            margin: 0 0 6px;
+            color: var(--navy);
+            font-size: 21px;
+            letter-spacing: -0.4px;
+        }
+
+        .level-heading p {
+            margin: 0;
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.7;
+        }
+
+        .level-tag {
+            display: inline-block;
+            margin-left: 7px;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 10px;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+            vertical-align: middle;
+        }
+
+        .basic .level-tag {
+            color: #18794e;
+            background: #e8f7ef;
+        }
+
+        .intermediate .level-tag {
+            color: #946200;
+            background: #fff4d6;
+        }
+
+        .advanced .level-tag {
+            color: #a33d45;
+            background: #fff0f0;
+        }
+
+        /* SKILL CARDS
+           These styles work with cards rendered by script.js.
+        */
+
+        .skills-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 15px;
+        }
+
+        .skills-grid > * {
+            min-width: 0;
+        }
+
+        .skills-grid > div,
+        .skills-grid > label,
+        .skills-grid > article {
+            padding: 19px;
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            background: #ffffff;
+            transition: border-color 0.2s ease,
+                        box-shadow 0.2s ease,
+                        transform 0.2s ease;
+        }
+
+        .skills-grid > div:hover,
+        .skills-grid > label:hover,
+        .skills-grid > article:hover {
+            border-color: #b9caf0;
+            box-shadow: 0 7px 20px rgba(49, 86, 166, 0.08);
+            transform: translateY(-2px);
+        }
+
+        .skills-grid h3 {
+            margin: 0 0 9px;
+            color: var(--navy);
+            font-size: 15px;
+            line-height: 1.5;
+        }
+
+        .skills-grid p {
+            color: var(--muted);
+            font-size: 12px;
+            line-height: 1.8;
+        }
+
+        .skills-grid input[type="checkbox"] {
+            width: 17px;
+            height: 17px;
+            margin-right: 8px;
+            accent-color: var(--blue);
+            cursor: pointer;
+            vertical-align: middle;
+        }
+
+        .skills-grid label {
+            cursor: pointer;
+        }
+
+        .skills-grid button {
+            max-width: 100%;
+            cursor: pointer;
+        }
+
+        /* SELECTED SKILLS SUMMARY */
+
+        .skill-summary {
+            position: fixed;
+            right: 0;
+            bottom: 0;
+            left: 0;
+            z-index: 90;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 18px;
+            padding: 17px max(4%, calc((100% - 1100px) / 2));
+            border-top: 1px solid var(--border);
+            background: rgba(255, 255, 255, 0.97);
+            box-shadow: 0 -7px 25px rgba(23, 37, 84, 0.06);
+            backdrop-filter: blur(12px);
+        }
+
+        .summary-info {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        #selectedSkillsCount {
+            margin: 0;
+            color: var(--navy);
+            font-size: 16px;
+            font-weight: 800;
+        }
+
+        .summary-caption {
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .primary-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            min-height: 46px;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 11px;
+            background: var(--blue);
+            color: #ffffff;
+            font-size: 13px;
+            font-weight: 700;
+            transition: background 0.2s ease, transform 0.2s ease;
+        }
+
+        .primary-btn:hover:not(:disabled) {
+            background: var(--navy);
+            transform: translateY(-1px);
+        }
+
+        .primary-btn:disabled {
+            background: #cbd5e1;
+            color: #64748b;
+            cursor: not-allowed;
+        }
+
+        /* RESPONSIVE */
+
+        @media (max-width: 1000px) {
+            .navbar {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+
+            .skills-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 650px) {
+            .navbar {
+                padding: 15px 4%;
+            }
+
+            .nav-links {
+                width: 100%;
+                gap: 4px;
+            }
+
+            .nav-links a {
+                padding: 8px 9px;
+                font-size: 12px;
+            }
+
+            .skills-page {
+                width: 92%;
+                padding-top: 23px;
+            }
+
+            .page-header {
+                padding: 30px 23px;
+                border-radius: 19px;
+            }
+
+            .page-header h1 {
+                font-size: 33px;
+            }
+
+            .hero-description {
+                font-size: 14px;
+            }
+
+            .selection-guide {
+                padding: 17px;
+            }
+
+            .skill-level-section {
+                padding: 20px 16px;
+                margin-bottom: 22px;
+                border-radius: 16px;
+            }
+
+            .level-heading h2 {
+                font-size: 19px;
+            }
+
+            .skills-grid {
+                grid-template-columns: minmax(0, 1fr);
+                gap: 12px;
+            }
+
+            .skills-grid > div,
+            .skills-grid > label,
+            .skills-grid > article {
+                padding: 16px;
+            }
+
+            .skill-summary {
+                align-items: stretch;
+                flex-direction: column;
+                gap: 12px;
+                padding: 13px 4%;
+            }
+
+            #selectedSkillsCount {
+                font-size: 15px;
+            }
+
+            .summary-caption {
+                font-size: 11px;
+            }
+
+            .primary-btn {
+                width: 100%;
+            }
+
+            .skills-page {
+                padding-bottom: 155px;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *,
+            *::before,
+            *::after {
+                scroll-behavior: auto !important;
+                transition: none !important;
+            }
+        }
+    </style>
 </head>
+
 <body>
 
     <nav class="navbar">
@@ -18,44 +544,94 @@
             <a href="skills.html" class="active">Skills</a>
             <a href="assessment.html">Self-Assessment</a>
             <a href="progress.html">Progress Report</a>
-            <a href="projects.html" id="projectLink">Project Recommendation</a>
+            <a href="recommendation.html" id="projectLink">Project Recommendation</a>
         </div>
     </nav>
 
     <main class="skills-page">
+
         <section class="page-header">
-            <p>STEP 2 OF YOUR SKILL JOURNEY</p>
-            <h1>Skills You'll Need</h1>
-            <p>
-                Select the skills you already know. SkillBridge will help
-                you identify what you need to learn next.
+            <div class="step-label">STEP 02 &nbsp; / &nbsp; YOUR SKILL JOURNEY</div>
+
+            <h1>Build skills.<br>Build your future.</h1>
+
+            <p class="hero-description">
+                Discover the skills that matter in your chosen career domain.
+                Select the skills you already know, then use your assessment
+                to identify what to learn next.
             </p>
-            <p>Selected Domain: <strong id="currentDomain">Loading...</strong></p>
+
+            <div class="domain-chip">
+                <span>YOUR SELECTED DOMAIN</span>
+                <strong id="currentDomain">Loading...</strong>
+            </div>
         </section>
 
-        <section class="skill-level-section">
-            <h2>Basic Skills</h2>
+        <section class="selection-guide">
+            <div class="guide-icon">✦</div>
+            <div>
+                <h2>Start with what you know</h2>
+                <p>
+                    Choose the skills you have some knowledge of.
+                    Be honest about your current level—this helps SkillBridge
+                    guide your learning journey more effectively.
+                </p>
+            </div>
+        </section>
+
+        <section class="skill-level-section basic">
+            <div class="level-heading">
+                <div class="level-icon">🌱</div>
+                <div>
+                    <h2>Basic Skills <span class="level-tag">FOUNDATION</span></h2>
+                    <p>Build a strong foundation and understand the essentials.</p>
+                </div>
+            </div>
+
             <div class="skills-grid" id="basicSkills"></div>
         </section>
 
-        <section class="skill-level-section">
-            <h2>Intermediate Skills</h2>
+        <section class="skill-level-section intermediate">
+            <div class="level-heading">
+                <div class="level-icon">⚡</div>
+                <div>
+                    <h2>Intermediate Skills <span class="level-tag">PRACTICE</span></h2>
+                    <p>Apply concepts, solve problems, and develop practical ability.</p>
+                </div>
+            </div>
+
             <div class="skills-grid" id="intermediateSkills"></div>
         </section>
 
-        <section class="skill-level-section">
-            <h2>Advanced Skills</h2>
+        <section class="skill-level-section advanced">
+            <div class="level-heading">
+                <div class="level-icon">🚀</div>
+                <div>
+                    <h2>Advanced Skills <span class="level-tag">MASTERY</span></h2>
+                    <p>Explore complex concepts and work on challenging problems.</p>
+                </div>
+            </div>
+
             <div class="skills-grid" id="advancedSkills"></div>
         </section>
 
         <section class="skill-summary">
-            <h3 id="selectedSkillsCount">0 Skills Selected</h3>
+            <div class="summary-info">
+                <h3 id="selectedSkillsCount">0 Skills Selected</h3>
+                <span class="summary-caption">
+                    Your selections help personalize your assessment.
+                </span>
+            </div>
+
             <button id="continueAssessmentBtn" class="primary-btn" disabled>
-                Continue to Self-Assessment →
+                Continue to Self-Assessment <span aria-hidden="true">→</span>
             </button>
         </section>
+
     </main>
 
+    <!-- Keep the existing project JavaScript -->
     <script src="script.js"></script>
+
 </body>
 </html>
