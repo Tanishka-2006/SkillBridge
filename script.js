@@ -604,592 +604,655 @@ if (continueAssessmentBtn) {
 }
 
 
-// =====================================================
-// 5. DATABASE-DRIVEN SELF-ASSESSMENT
-// =====================================================
-
-(function () {
-    const questionText = document.getElementById("questionText");
-
-    if (!questionText) return;
-
-    const $ = id => document.getElementById(id);
-
-    const API = (
-        window.SKILLBRIDGE_API ||
-        (
-            window.location.protocol === "file:" ||
-            /:(5500|5501|3000)$/.test(window.location.host)
-                ? "http://127.0.0.1:5000"
-                : window.location.origin
-        )
-    ).replace(/\/$/, "");
-
-    const domainEl = $("assessmentDomain");
-    const currentSkillEl = $("currentSkill");
-    const totalEl = $("totalQuestions");
-    const completedEl = $("completedQuestions");
-    const tabsEl = $("skillTabs");
-    const numberEl = $("questionNumber");
-    const percentageEl = $("quizPercentage");
-    const progressFill = $("quizProgressFill");
-    const typeEl = $("questionType");
-    const categoryEl = $("questionCategory");
-    const optionsEl = $("optionsContainer");
-    const previousBtn = $("previousQuestionBtn");
-    const nextBtn = $("nextQuestionBtn");
-
-    const domain = localStorage.getItem("selectedDomain") || "";
-
-    let selectedSkills = getStoredJSON("selectedSkills", []);
-    let questions = [];
-    let currentIndex = 0;
-    let answers = getStoredJSON("skillBridgeDbAnswers", {});
-    let completed = false;
-    let submitting = false;
-
-    if (!Array.isArray(selectedSkills)) selectedSkills = [];
-    if (!answers || typeof answers !== "object" || Array.isArray(answers)) {
-        answers = {};
-    }
-
-    if (domainEl) domainEl.textContent = domain || "Not selected";
-
-    function showMessage(message) {
-        questionText.textContent = message;
-
-        if (optionsEl) optionsEl.innerHTML = "";
-        if (previousBtn) previousBtn.disabled = true;
-        if (nextBtn) nextBtn.disabled = true;
-        if (totalEl) totalEl.textContent = questions.length;
-    }
-
-    async function getJSON(url, options = {}) {
-        return apiJSON(url, options);
-    }
-
-    function getSelectedSkillLevel(skill) {
-        const level = String(skill.difficulty_level || "").trim();
-
-        if (/^basic$/i.test(level)) return "Basic";
-        if (/^intermediate$/i.test(level)) return "Intermediate";
-        if (/^advanced$/i.test(level)) return "Advanced";
-
-        const savedLevels = getStoredJSON("selectedSkillLevels", {});
-        const saved = savedLevels[skill.skill_name];
-
-        if (saved) {
-            const normalized = String(saved).trim().toLowerCase();
-            return normalized.charAt(0).toUpperCase() + normalized.slice(1);
-        }
-
-        return level || "Intermediate";
-    }
-
-    function updateTabs() {
-        if (!tabsEl) return;
-
-        tabsEl.innerHTML = "";
-
-        const uniqueSkills = [
-            ...new Set(questions.map(question => question.skill_name))
-        ];
-
-        uniqueSkills.forEach(skillName => {
-            const button = document.createElement("button");
-            button.type = "button";
-            button.className = "skill-tab";
-            button.textContent = skillName;
-
-            button.addEventListener("click", function () {
-                const index = questions.findIndex(
-                    question => question.skill_name === skillName
-                );
+ // =====================================================
+ // 5. DATABASE-DRIVEN SELF-ASSESSMENT
+ // Mixed difficulty + duplicate protection + up to 20
+ // questions per skill
+ // =====================================================
+
+ (function () {
+     const questionText = document.getElementById("questionText");
+     if (!questionText) return;
+
+     const $ = id => document.getElementById(id);
+     const API = API_BASE;
+
+     const domainEl = $("assessmentDomain");
+     const currentSkillEl = $("currentSkill");
+     const totalEl = $("totalQuestions");
+     const completedEl = $("completedQuestions");
+     const tabsEl = $("skillTabs");
+     const numberEl = $("questionNumber");
+     const percentageEl = $("quizPercentage");
+     const progressFill = $("quizProgressFill");
+     const typeEl = $("questionType");
+     const categoryEl = $("questionCategory");
+     const optionsEl = $("optionsContainer");
+     const previousBtn = $("previousQuestionBtn");
+     const nextBtn = $("nextQuestionBtn");
+
+     const domain = localStorage.getItem("selectedDomain") || "";
+     let selectedSkills = getStoredJSON("selectedSkills", []);
+     let questions = [];
+     let currentIndex = 0;
+     let answers = getStoredJSON("skillBridgeDbAnswers", {});
+     let completed = false;
+     let submitting = false;
+
+     if (!Array.isArray(selectedSkills)) selectedSkills = [];
+
+     if (!answers || typeof answers !== "object" || Array.isArray(answers)) {
+         answers = {};
+     }
+
+     if (domainEl) domainEl.textContent = domain || "Not selected";
+
+     function showMessage(message) {
+         questionText.textContent = message;
+         if (optionsEl) optionsEl.innerHTML = "";
+         if (previousBtn) previousBtn.disabled = true;
+         if (nextBtn) nextBtn.disabled = true;
+         if (totalEl) totalEl.textContent = questions.length;
+     }
+
+     function getSelectedSkillLevel(skill) {
+         const savedLevels = getStoredJSON("selectedSkillLevels", {});
+         const saved = savedLevels[skill.skill_name];
+
+         const raw = saved || skill.difficulty_level || "Intermediate";
+         const level = String(raw).trim().toLowerCase();
+
+         if (level === "beginner" || level === "basic") return "Basic";
+         if (level === "medium" || level === "intermediate") return "Intermediate";
+         if (level === "expert" || level === "advanced") return "Advanced";
+
+         return "Intermediate";
+     }
+
+     function normalizeQuestion(question, skill) {
+         return {
+             ...question,
+             question_id: question.question_id,
+             skill_id: skill.skill_id,
+             skill_name: skill.skill_name,
+             difficulty_level: question.difficulty_level || "Basic"
+         };
+     }
+
+     // Fetch all available difficulty levels for one skill.
+     // Prioritize the skill's selected level, then fill from other levels.
+     async function loadQuestionsForSkill(skill) {
+         const preferred = getSelectedSkillLevel(skill);
+         const levels = [
+             preferred,
+             ...["Basic", "Intermediate", "Advanced"].filter(
+                 level => level !== preferred
+             )
+         ];
+
+         const collected = [];
+         const seenIds = new Set();
+         const targetCount = 20;
+
+         for (const level of levels) {
+             if (collected.length >= targetCount) break;
+
+             const url =
+                 `${API}/api/questions` +
+                 `?skill_id=${encodeURIComponent(skill.skill_id)}` +
+                 `&difficulty=${encodeURIComponent(level)}`;
+
+             try {
+                 const data = await apiJSON(url);
+                 const batch = Array.isArray(data.questions)
+                     ? data.questions
+                     : [];
+
+                 for (const item of batch) {
+                     const id = String(item.question_id ?? "");
+
+                     if (!id || seenIds.has(id)) continue;
 
-                if (index !== -1 && !completed && !submitting) {
-                    currentIndex = index;
-                    renderQuestion();
-                }
-            });
+                     seenIds.add(id);
+                     collected.push(normalizeQuestion(item, skill));
+
+                     if (collected.length >= targetCount) break;
+                 }
+             } catch (error) {
+                 console.warn(
+                     `Could not load ${level} questions for ${skill.skill_name}:`,
+                     error.message
+                 );
+             }
+         }
+
+         return collected;
+     }
 
-            tabsEl.appendChild(button);
-        });
-    }
+     function updateTabs() {
+         if (!tabsEl) return;
+         tabsEl.innerHTML = "";
 
-    function renderQuestion() {
-        if (completed) return;
+         const uniqueSkills = [
+             ...new Set(questions.map(question => question.skill_name))
+         ];
 
-        const question = questions[currentIndex];
+         uniqueSkills.forEach(skillName => {
+             const button = document.createElement("button");
+             button.type = "button";
+             button.className = "skill-tab";
+             button.textContent = skillName;
+
+             button.addEventListener("click", function () {
+                 const index = questions.findIndex(
+                     question => question.skill_name === skillName
+                 );
+
+                 if (index !== -1 && !completed && !submitting) {
+                     currentIndex = index;
+                     renderQuestion();
+                 }
+             });
+
+             tabsEl.appendChild(button);
+         });
+     }
+
+     function renderQuestion() {
+         if (completed) return;
+
+         const question = questions[currentIndex];
+
+         if (!question) {
+             showMessage("No questions are available for these skills.");
+             return;
+         }
+
+         if (currentSkillEl) {
+             currentSkillEl.textContent = question.skill_name;
+         }
+
+         if (numberEl) {
+             numberEl.textContent =
+                 `Question ${currentIndex + 1} of ${questions.length}`;
+         }
+
+         const percentage = Math.round(
+             ((currentIndex + 1) / questions.length) * 100
+         );
+
+         if (percentageEl) percentageEl.textContent = percentage + "%";
+         if (progressFill) progressFill.style.width = percentage + "%";
+
+         if (categoryEl) {
+             categoryEl.textContent =
+                 `${question.difficulty_level || "Mixed"} Assessment`;
+         }
+
+         if (typeEl) typeEl.textContent = "Multiple Choice";
+         questionText.textContent = question.question_text || "Question text unavailable.";
+
+         if (optionsEl) optionsEl.innerHTML = "";
+
+         ["A", "B", "C", "D"].forEach(letter => {
+             const button = document.createElement("button");
+             button.type = "button";
+             button.className = "quiz-option";
+
+             const optionText = question["option_" + letter.toLowerCase()];
+             button.textContent = `${letter}. ${optionText ?? ""}`;
+
+             if (answers[question.question_id] === letter) {
+                 button.classList.add("selected");
+             }
+
+             button.addEventListener("click", function () {
+                 if (completed || submitting) return;
+
+                 answers[question.question_id] = letter;
+
+                 localStorage.setItem(
+                     "skillBridgeDbAnswers",
+                     JSON.stringify(answers)
+                 );
+
+                 renderQuestion();
+             });
+
+             if (optionsEl) optionsEl.appendChild(button);
+         });
+
+         if (completedEl) {
+             completedEl.textContent = questions.filter(
+                 item => Boolean(answers[item.question_id])
+             ).length;
+         }
+
+         if (previousBtn) {
+             previousBtn.disabled = currentIndex === 0 || submitting;
+         }
+
+         if (nextBtn) {
+             nextBtn.disabled =
+                 !answers[question.question_id] || submitting;
+
+             nextBtn.textContent =
+                 currentIndex === questions.length - 1
+                     ? "Submit Assessment"
+                     : "Next →";
+         }
+
+         if (tabsEl) {
+             tabsEl.querySelectorAll(".skill-tab").forEach(tab => {
+                 const skillQuestions = questions.filter(
+                     item => item.skill_name === tab.textContent
+                 );
+
+                 const allAnswered = skillQuestions.every(
+                     item => Boolean(answers[item.question_id])
+                 );
+
+                 tab.classList.toggle(
+                     "active",
+                     tab.textContent === question.skill_name
+                 );
+
+                 tab.classList.toggle("completed", allAnswered);
+             });
+         }
+     }
+
+     async function finishAssessment() {
+         if (completed || submitting) return;
+
+         const unanswered = questions.filter(
+             question => !answers[question.question_id]
+         );
+
+         if (unanswered.length) {
+             alert(
+                 `Please answer all questions. ${unanswered.length} question(s) remain unanswered.`
+             );
+             return;
+         }
+
+         submitting = true;
+
+         if (nextBtn) {
+             nextBtn.disabled = true;
+             nextBtn.textContent = "Submitting...";
+         }
+
+         if (previousBtn) previousBtn.disabled = true;
+
+         try {
+             let userId = null;
+
+             try {
+                 const currentUser = JSON.parse(
+                     sessionStorage.getItem("skillbridgeUser") || "{}"
+                 );
+
+                 userId =
+                     currentUser.user_id ??
+                     currentUser.userId ??
+                     currentUser.id ??
+                     currentUser.ID ??
+                     null;
+
+                 if (userId !== null) {
+                     userId = Number(userId);
+
+                     if (!Number.isInteger(userId) || userId <= 0) {
+                         userId = null;
+                     }
+                 }
+             } catch (error) {
+                 console.warn("Could not read current user:", error);
+             }
+
+             const questionsBySkill = new Map();
+
+             questions.forEach(question => {
+                 const key = String(question.skill_id);
+
+                 if (!questionsBySkill.has(key)) {
+                     questionsBySkill.set(key, []);
+                 }
+
+                 questionsBySkill.get(key).push(question);
+             });
+
+             const savedResults = [];
+
+             for (const [, skillQuestions] of questionsBySkill) {
+                 const skill = skillQuestions[0];
+
+                 const responseData = await apiJSON(
+                     `${API}/api/assessment/submit`,
+                     {
+                         method: "POST",
+                         headers: {
+                             "Content-Type": "application/json"
+                         },
+                         body: JSON.stringify({
+                             user_id: userId,
+                             answers: skillQuestions.map(question => ({
+                                 question_id: question.question_id,
+                                 answer: answers[question.question_id]
+                             }))
+                         })
+                     }
+                 );
+
+                 const result = responseData.result || responseData;
+
+                 const score = Number(
+                     result.score ??
+                     result.correct_answers ??
+                     result.correctAnswers
+                 );
+
+                 const total = Number(
+                     result.total ??
+                     result.total_questions ??
+                     result.totalQuestions ??
+                     skillQuestions.length
+                 );
+
+                 if (
+                     !Number.isFinite(score) ||
+                     !Number.isFinite(total) ||
+                     total <= 0
+                 ) {
+                     throw new Error(
+                         `The server returned an invalid score for ${skill.skill_name}.`
+                     );
+                 }
+
+                 const levels = [
+                     ...new Set(
+                         skillQuestions.map(question =>
+                             String(question.difficulty_level || "")
+                                 .trim()
+                                 .toLowerCase()
+                         )
+                     )
+                 ];
+
+                 savedResults.push({
+                     success: true,
+                     score,
+                     total,
+                     percentage: Math.round((score / total) * 100),
+                     skill_name: skill.skill_name,
+                     skill_id: skill.skill_id,
+                     difficulty: levels.length > 1
+                         ? "Mixed"
+                         : skill.difficulty_level
+                 });
+             }
+
+             const totalScore = savedResults.reduce(
+                 (sum, result) => sum + result.score, 0
+             );
+
+             const totalQuestions = savedResults.reduce(
+                 (sum, result) => sum + result.total, 0
+             );
+
+             if (!totalQuestions) {
+                 throw new Error("No assessment results were returned.");
+             }
+
+             const overallPercentage = Math.round(
+                 (totalScore / totalQuestions) * 100
+             );
+
+             const finalResult = {
+                 success: true,
+                 score: totalScore,
+                 total: totalQuestions,
+                 percentage: overallPercentage,
+                 domain,
+                 user_id: userId,
+                 skillResults: savedResults,
+                 completedAt: new Date().toISOString()
+             };
+
+             localStorage.setItem(
+                 "assessmentScore",
+                 String(overallPercentage)
+             );
+
+             localStorage.setItem("assessmentCompleted", "true");
+
+             localStorage.setItem(
+                 "skillResults",
+                 JSON.stringify(finalResult)
+             );
+
+             completed = true;
+             questionText.textContent = "Assessment Completed!";
+
+             if (optionsEl) {
+                 optionsEl.innerHTML = "";
+
+                 const summary = document.createElement("div");
+                 summary.className = "assessment-result";
+
+                 const heading = document.createElement("h3");
+                 heading.textContent =
+                     `Your Score: ${totalScore} / ${totalQuestions}`;
+
+                 const scoreText = document.createElement("p");
+                 scoreText.textContent =
+                     `Percentage: ${overallPercentage}%`;
+
+                 summary.append(heading, scoreText);
+
+                 savedResults.forEach(result => {
+                     const item = document.createElement("p");
+                     item.textContent =
+                         `${result.skill_name}: ${result.score} / ${result.total}`;
+                     summary.appendChild(item);
+                 });
+
+                 optionsEl.appendChild(summary);
+             }
+
+             if (categoryEl) categoryEl.textContent = "Your Results";
+             if (typeEl) typeEl.textContent = "Completed";
+             if (numberEl) numberEl.textContent = "Assessment complete";
+             if (percentageEl) percentageEl.textContent = "100%";
+             if (progressFill) progressFill.style.width = "100%";
+             if (completedEl) completedEl.textContent = totalQuestions;
+             if (previousBtn) previousBtn.disabled = true;
+             if (nextBtn) nextBtn.disabled = true;
+
+             alert(
+                 `Assessment submitted successfully! Your overall score is ${overallPercentage}%.`
+             );
+
+             window.location.href = "progress.html";
+
+         } catch (error) {
+             console.error("Assessment submission failed:", error);
+             alert("Could not submit assessment:\n" + error.message);
+
+             submitting = false;
+
+             if (previousBtn) {
+                 previousBtn.disabled = currentIndex === 0;
+             }
+
+             if (nextBtn) {
+                 nextBtn.disabled =
+                     !answers[questions[currentIndex]?.question_id];
+
+                 nextBtn.textContent =
+                     currentIndex === questions.length - 1
+                         ? "Submit Assessment"
+                         : "Next →";
+             }
+         }
+     }
+
+     if (previousBtn) {
+         previousBtn.addEventListener("click", function () {
+             if (currentIndex > 0 && !completed && !submitting) {
+                 currentIndex--;
+                 renderQuestion();
+             }
+         });
+     }
+
+     if (nextBtn) {
+         nextBtn.addEventListener("click", function () {
+             if (completed || submitting) return;
+
+             const question = questions[currentIndex];
+
+             if (!question || !answers[question.question_id]) {
+                 alert("Please select an answer first.");
+                 return;
+             }
+
+             if (currentIndex === questions.length - 1) {
+                 finishAssessment();
+             } else {
+                 currentIndex++;
+                 renderQuestion();
+             }
+         });
+     }
+
+     async function init() {
+         if (previousBtn) previousBtn.disabled = true;
+         if (nextBtn) nextBtn.disabled = true;
+
+         if (!domain || selectedSkills.length === 0) {
+             showMessage(
+                 "Please return to the Skills page and select at least one skill."
+             );
+             return;
+         }
+
+         questionText.textContent = "Loading questions from the database...";
+
+         try {
+             const domainData = await apiJSON(`${API}/api/domains`);
+
+             const matchingDomain = (domainData.domains || []).find(
+                 item =>
+                     normalizeDomainName(item.domain_name) ===
+                     normalizeDomainName(domain)
+             );
+
+             if (!matchingDomain) {
+                 showMessage("This domain was not found in the database.");
+                 return;
+             }
+
+             const skillsData = await apiJSON(
+                 `${API}/api/domains/${matchingDomain.domain_id}/skills`
+             );
+
+             const availableSkills = Array.isArray(skillsData.skills)
+                 ? skillsData.skills
+                 : [];
+
+             const matchedSkills = selectedSkills.map(name =>
+                 availableSkills.find(skill => skill.skill_name === name)
+             ).filter(Boolean);
+
+             if (!matchedSkills.length) {
+                 showMessage(
+                     "Your selected skills do not match the database. Please return to the Skills page."
+                 );
+                 return;
+             }
+
+             questions = [];
+
+             // Fetch questions per skill, preserving selected-level priority.
+             for (const skill of matchedSkills) {
+                 const skillQuestions = await loadQuestionsForSkill(skill);
+
+                 if (!skillQuestions.length) {
+                     console.warn(
+                         `No questions found for ${skill.skill_name}.`
+                     );
+                 }
+
+                 questions.push(...skillQuestions);
+             }
+
+             // Remove any accidental duplicate IDs across skills too.
+             const seenIds = new Set();
+
+             questions = questions.filter(question => {
+                 const id = String(question.question_id);
+
+                 if (seenIds.has(id)) return false;
+
+                 seenIds.add(id);
+                 return true;
+             });
+
+             const validQuestionIds = new Set(
+                 questions.map(question => String(question.question_id))
+             );
+
+             Object.keys(answers).forEach(id => {
+                 if (!validQuestionIds.has(String(id))) {
+                     delete answers[id];
+                 }
+             });
+
+             localStorage.setItem(
+                 "skillBridgeDbAnswers",
+                 JSON.stringify(answers)
+             );
+
+             if (!questions.length) {
+                 showMessage(
+                     "No questions were found for your selected skills. Check the quiz_questions table and the question API."
+                 );
+                 return;
+             }
+
+             if (totalEl) totalEl.textContent = questions.length;
+
+             updateTabs();
+             renderQuestion();
+
+             const shortSkills = matchedSkills.filter(skill =>
+                 questions.filter(
+                     question => String(question.skill_id) === String(skill.skill_id)
+                 ).length < 20
+             );
+
+             if (shortSkills.length) {
+                 console.info(
+                     "Some skills have fewer than 20 questions in the database:",
+                     shortSkills.map(skill => skill.skill_name)
+                 );
+             }
+
+         } catch (error) {
+             console.error("Assessment loading failed:", error);
+
+             showMessage(
+                 "Unable to load questions. Check that Flask is running and the database APIs are working.\n\nDetails: " +
+                 error.message
+             );
+         }
+     }
+
+     init();
+ })();
 
-        if (!question) {
-            showMessage("No questions are available for these selected skills.");
-            return;
-        }
-
-        if (currentSkillEl) currentSkillEl.textContent = question.skill_name;
-
-        if (numberEl) {
-            numberEl.textContent =
-                `Question ${currentIndex + 1} of ${questions.length}`;
-        }
-
-        const percentage = Math.round(
-            ((currentIndex + 1) / questions.length) * 100
-        );
-
-        if (percentageEl) percentageEl.textContent = percentage + "%";
-        if (progressFill) progressFill.style.width = percentage + "%";
-
-        if (categoryEl) {
-            categoryEl.textContent =
-                question.difficulty_level + " Assessment";
-        }
-
-        if (typeEl) typeEl.textContent = "Multiple Choice";
-
-        questionText.textContent = question.question_text;
-
-        if (optionsEl) optionsEl.innerHTML = "";
-
-        ["A", "B", "C", "D"].forEach(letter => {
-            const button = document.createElement("button");
-            button.type = "button";
-            button.className = "quiz-option";
-
-            const optionText = question["option_" + letter.toLowerCase()];
-            button.textContent = `${letter}. ${optionText ?? ""}`;
-
-            if (answers[question.question_id] === letter) {
-                button.classList.add("selected");
-            }
-
-            button.addEventListener("click", function () {
-                if (completed || submitting) return;
-
-                answers[question.question_id] = letter;
-
-                localStorage.setItem(
-                    "skillBridgeDbAnswers",
-                    JSON.stringify(answers)
-                );
-
-                renderQuestion();
-            });
-
-            if (optionsEl) optionsEl.appendChild(button);
-        });
-
-        if (completedEl) {
-            completedEl.textContent = questions.filter(
-                item => Boolean(answers[item.question_id])
-            ).length;
-        }
-
-        if (previousBtn) {
-            previousBtn.disabled = currentIndex === 0 || submitting;
-        }
-
-        if (nextBtn) {
-            nextBtn.disabled =
-                !answers[question.question_id] || submitting;
-
-            nextBtn.textContent =
-                currentIndex === questions.length - 1
-                    ? "Submit Assessment"
-                    : "Next →";
-        }
-
-        if (tabsEl) {
-            tabsEl.querySelectorAll(".skill-tab").forEach(tab => {
-                const skillQuestions = questions.filter(
-                    item => item.skill_name === tab.textContent
-                );
-
-                const allAnswered = skillQuestions.every(
-                    item => Boolean(answers[item.question_id])
-                );
-
-                tab.classList.toggle(
-                    "active",
-                    tab.textContent === question.skill_name
-                );
-
-                tab.classList.toggle("completed", allAnswered);
-            });
-        }
-    }
-
-    async function finishAssessment() {
-        if (completed || submitting) return;
-
-        if (questions.some(question => !answers[question.question_id])) {
-            alert("Please answer every question before submitting.");
-            return;
-        }
-
-        submitting = true;
-
-        if (nextBtn) {
-            nextBtn.disabled = true;
-            nextBtn.textContent = "Submitting...";
-        }
-
-        if (previousBtn) previousBtn.disabled = true;
-
-        try {
-            let userId = null;
-
-            try {
-                const currentUser = JSON.parse(
-                    sessionStorage.getItem("skillbridgeUser") || "{}"
-                );
-
-                userId =
-                    currentUser.user_id ??
-                    currentUser.userId ??
-                    currentUser.id ??
-                    currentUser.ID ??
-                    null;
-
-                if (userId !== null) {
-                    userId = Number(userId);
-
-                    if (!Number.isInteger(userId) || userId <= 0) {
-                        userId = null;
-                    }
-                }
-            } catch (error) {
-                console.error("Could not read logged-in user:", error);
-            }
-
-            const questionsBySkill = new Map();
-
-            questions.forEach(question => {
-                if (!questionsBySkill.has(question.skill_id)) {
-                    questionsBySkill.set(question.skill_id, []);
-                }
-
-                questionsBySkill.get(question.skill_id).push(question);
-            });
-
-            const savedResults = [];
-
-            for (const [skillId, skillQuestions] of questionsBySkill) {
-                const levels = new Set(
-                    skillQuestions.map(question =>
-                        String(question.difficulty_level || "")
-                            .trim()
-                            .toLowerCase()
-                    )
-                );
-
-                if (levels.size !== 1) {
-                    throw new Error(
-                        "Questions for " +
-                        skillQuestions[0].skill_name +
-                        " contain different difficulty levels. Check quiz_questions."
-                    );
-                }
-
-                const responseData = await getJSON(
-                    API + "/api/assessment/submit",
-                    {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json"
-                        },
-                        body: JSON.stringify({
-                            user_id: userId,
-                            answers: skillQuestions.map(question => ({
-                                question_id: question.question_id,
-                                answer: answers[question.question_id]
-                            }))
-                        })
-                    }
-                );
-
-                const result = responseData.result || responseData;
-
-                const score = Number(
-                    result.score ??
-                    result.correct_answers ??
-                    result.correctAnswers ??
-                    0
-                );
-
-                const total = Number(
-                    result.total ??
-                    result.total_questions ??
-                    result.totalQuestions ??
-                    skillQuestions.length
-                );
-
-                if (
-                    !Number.isFinite(score) ||
-                    !Number.isFinite(total) ||
-                    total <= 0
-                ) {
-                    throw new Error(
-                        "Invalid assessment result returned for " +
-                        skillQuestions[0].skill_name
-                    );
-                }
-
-                savedResults.push({
-                    success: true,
-                    score,
-                    total,
-                    percentage: Math.round((score / total) * 100),
-                    skill_name: skillQuestions[0].skill_name,
-                    skill_id: skillId,
-                    difficulty: skillQuestions[0].difficulty_level
-                });
-            }
-
-            const totalScore = savedResults.reduce(
-                (sum, result) => sum + result.score, 0
-            );
-
-            const totalQuestions = savedResults.reduce(
-                (sum, result) => sum + result.total, 0
-            );
-
-            if (totalQuestions === 0) {
-                throw new Error("No assessment results were returned.");
-            }
-
-            const overallPercentage = Math.round(
-                (totalScore / totalQuestions) * 100
-            );
-
-            const finalResult = {
-                success: true,
-                score: totalScore,
-                total: totalQuestions,
-                percentage: overallPercentage,
-                domain,
-                user_id: userId,
-                skillResults: savedResults,
-                completedAt: new Date().toISOString()
-            };
-
-            localStorage.setItem("assessmentScore", String(overallPercentage));
-            localStorage.setItem("assessmentCompleted", "true");
-            localStorage.setItem("skillResults", JSON.stringify(finalResult));
-
-            completed = true;
-
-            questionText.textContent = "Assessment Completed!";
-
-            if (optionsEl) {
-                optionsEl.innerHTML = "";
-
-                const summary = document.createElement("div");
-                summary.className = "assessment-result";
-
-                const heading = document.createElement("h3");
-                heading.textContent =
-                    `Your Score: ${totalScore} / ${totalQuestions}`;
-
-                const scoreText = document.createElement("p");
-                scoreText.textContent =
-                    `Percentage: ${overallPercentage}%`;
-
-                summary.append(heading, scoreText);
-
-                savedResults.forEach(result => {
-                    const item = document.createElement("p");
-                    item.textContent =
-                        `${result.skill_name}: ${result.score} / ${result.total}`;
-                    summary.appendChild(item);
-                });
-
-                optionsEl.appendChild(summary);
-            }
-
-            if (categoryEl) categoryEl.textContent = "Your Results";
-            if (typeEl) typeEl.textContent = "Completed";
-            if (numberEl) numberEl.textContent = "Assessment complete";
-            if (percentageEl) percentageEl.textContent = "100%";
-            if (progressFill) progressFill.style.width = "100%";
-            if (completedEl) completedEl.textContent = totalQuestions;
-            if (previousBtn) previousBtn.disabled = true;
-            if (nextBtn) nextBtn.disabled = true;
-
-            alert(
-                `Assessment submitted successfully! Your overall score is ${overallPercentage}%.`
-            );
-
-            window.location.href = "progress.html";
-
-        } catch (error) {
-            console.error("Assessment submission failed:", error);
-
-            alert("Could not submit assessment:\n" + error.message);
-
-            submitting = false;
-
-            if (previousBtn) {
-                previousBtn.disabled = currentIndex === 0;
-            }
-
-            if (nextBtn) {
-                nextBtn.disabled = false;
-                nextBtn.textContent =
-                    currentIndex === questions.length - 1
-                        ? "Submit Assessment"
-                        : "Next →";
-            }
-        }
-    }
-
-    if (previousBtn) {
-        previousBtn.addEventListener("click", function () {
-            if (currentIndex > 0 && !completed && !submitting) {
-                currentIndex--;
-                renderQuestion();
-            }
-        });
-    }
-
-    if (nextBtn) {
-        nextBtn.addEventListener("click", function () {
-            if (completed || submitting) return;
-
-            const question = questions[currentIndex];
-
-            if (!question || !answers[question.question_id]) {
-                alert("Please select an answer first.");
-                return;
-            }
-
-            if (currentIndex === questions.length - 1) {
-                finishAssessment();
-            } else {
-                currentIndex++;
-                renderQuestion();
-            }
-        });
-    }
-
-    async function init() {
-        if (previousBtn) previousBtn.disabled = true;
-        if (nextBtn) nextBtn.disabled = true;
-
-        if (!domain || selectedSkills.length === 0) {
-            showMessage(
-                "Please return to the Skills page and select at least one skill."
-            );
-            return;
-        }
-
-        questionText.textContent = "Loading questions from the database...";
-
-        try {
-            const domainData = await getJSON(API + "/api/domains");
-
-            const matchingDomain = (domainData.domains || []).find(
-                item =>
-                    normalizeDomainName(item.domain_name) ===
-                    normalizeDomainName(domain)
-            );
-
-            if (!matchingDomain) {
-                showMessage("This domain was not found in the database.");
-                return;
-            }
-
-            const skillsData = await getJSON(
-                `${API}/api/domains/${matchingDomain.domain_id}/skills`
-            );
-
-            const availableSkills = skillsData.skills || [];
-
-            const matchedSkills = selectedSkills.map(name => {
-                const databaseSkill = availableSkills.find(
-                    skill => skill.skill_name === name
-                );
-
-                if (!databaseSkill) {
-                    console.warn("Selected skill not found:", name);
-                    return null;
-                }
-
-                return {
-                    ...databaseSkill,
-                    selectedDifficulty: getSelectedSkillLevel(databaseSkill)
-                };
-            }).filter(Boolean);
-
-            if (!matchedSkills.length) {
-                showMessage(
-                    "Your selected skills do not match the database. " +
-                    "Please return to the Skills page."
-                );
-                return;
-            }
-
-            for (const skill of matchedSkills) {
-                const difficulty = skill.selectedDifficulty;
-
-                const data = await getJSON(
-                    `${API}/api/questions` +
-                    `?skill_id=${encodeURIComponent(skill.skill_id)}` +
-                    `&difficulty=${encodeURIComponent(difficulty)}`
-                );
-
-                if (Array.isArray(data.questions)) {
-                    data.questions.forEach(question => {
-                        questions.push({
-                            ...question,
-                            skill_name: skill.skill_name,
-                            skill_id: skill.skill_id
-                        });
-                    });
-                }
-            }
-
-            const validQuestionIds = new Set(
-                questions.map(question => String(question.question_id))
-            );
-
-            Object.keys(answers).forEach(id => {
-                if (!validQuestionIds.has(String(id))) {
-                    delete answers[id];
-                }
-            });
-
-            localStorage.setItem(
-                "skillBridgeDbAnswers",
-                JSON.stringify(answers)
-            );
-
-            if (!questions.length) {
-                showMessage(
-                    "No questions were found for the selected skills. " +
-                    "Check quiz_questions for matching skill IDs and difficulty levels."
-                );
-                return;
-            }
-
-            if (totalEl) totalEl.textContent = questions.length;
-
-            updateTabs();
-            renderQuestion();
-
-        } catch (error) {
-            console.error("Assessment loading failed:", error);
-
-            showMessage(
-                "Unable to load questions. Check that Flask is running " +
-                "and the database APIs are working.\n\nDetails: " +
-                error.message
-            );
-        }
-    }
-
-    init();
-})();
 
 
 // =====================================================
