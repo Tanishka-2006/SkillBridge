@@ -1,10 +1,35 @@
-from flask import Flask, request, jsonify
+
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from werkzeug.security import generate_password_hash, check_password_hash
 from db import get_db_connection
 
+import os
+
 app = Flask(__name__)
 CORS(app)
+
+
+# ==========================================
+# HOME / FRONTEND
+# ==========================================
+
+@app.route("/", methods=["GET"])
+def home():
+    return send_from_directory(app.root_path, "index.html")
+
+
+# Serve existing frontend files from the repository root.
+# This supports links to HTML pages, CSS, and JavaScript.
+@app.route("/<path:filename>", methods=["GET"])
+def serve_frontend_file(filename):
+    allowed_extensions = (".html", ".css", ".js")
+    if filename.lower().endswith(allowed_extensions):
+        return send_from_directory(app.root_path, filename)
+    return jsonify({
+        "success": False,
+        "message": "Resource not found."
+    }), 404
 
 
 # ==========================================
@@ -30,24 +55,14 @@ def error_response(message, status=500):
 
 
 # ==========================================
-# HOME / HEALTH CHECK
+# HEALTH CHECK
 # ==========================================
-
-@app.route("/", methods=["GET"])
-def home():
-    return jsonify({
-        "success": True,
-        "message": "SkillBridge Backend is Running!"
-    })
-
 
 @app.route("/test-db", methods=["GET"])
 def test_db():
     connection = None
-
     try:
         connection = get_connection()
-
         with connection.cursor() as cursor:
             cursor.execute("SELECT 1")
             cursor.fetchone()
@@ -81,7 +96,6 @@ def api_test():
 @app.route("/api/signup", methods=["POST"])
 def signup():
     data = request.get_json(silent=True) or {}
-
     full_name = str(data.get("full_name") or "").strip()
     email = str(data.get("email") or "").strip().lower()
     password = data.get("password") or ""
@@ -90,10 +104,7 @@ def signup():
         return error_response("Please fill in all fields.", 400)
 
     if len(password) < 8:
-        return error_response(
-            "Password must be at least 8 characters.",
-            400
-        )
+        return error_response("Password must be at least 8 characters.", 400)
 
     if len(full_name) > 150 or len(email) > 254:
         return error_response("Name or email is too long.", 400)
@@ -112,8 +123,7 @@ def signup():
 
         if cursor.fetchone():
             return error_response(
-                "An account with this email already exists.",
-                409
+                "An account with this email already exists.", 409
             )
 
         password_hash = generate_password_hash(password)
@@ -143,11 +153,9 @@ def signup():
     except Exception:
         if connection:
             connection.rollback()
-
         app.logger.exception("Signup failed")
         return error_response(
-            "Unable to create your account. Please try again.",
-            500
+            "Unable to create your account. Please try again.", 500
         )
 
     finally:
@@ -161,14 +169,12 @@ def signup():
 @app.route("/api/login", methods=["POST"])
 def login():
     data = request.get_json(silent=True) or {}
-
     email = str(data.get("email") or "").strip().lower()
     password = data.get("password") or ""
 
     if not email or not password:
         return error_response(
-            "Please enter your email and password.",
-            400
+            "Please enter your email and password.", 400
         )
 
     connection = None
@@ -190,10 +196,7 @@ def login():
         user = cursor.fetchone()
 
         if not user or not check_password_hash(user[3], password):
-            return error_response(
-                "Invalid email or password.",
-                401
-            )
+            return error_response("Invalid email or password.", 401)
 
         return jsonify({
             "success": True,
@@ -235,10 +238,7 @@ def get_domains():
         )
 
         columns = [column[0] for column in cursor.description]
-        domains = [
-            dict(zip(columns, row))
-            for row in cursor.fetchall()
-        ]
+        domains = [dict(zip(columns, row)) for row in cursor.fetchall()]
 
         return jsonify({
             "success": True,
@@ -256,7 +256,6 @@ def get_domains():
 
 # ==========================================
 # GET SKILLS FOR A DOMAIN
-# Includes difficulty and priority.
 # ==========================================
 
 @app.route("/api/domains/<int:domain_id>/skills", methods=["GET"])
@@ -268,8 +267,6 @@ def get_domain_skills(domain_id):
         connection = get_connection()
         cursor = connection.cursor()
 
-        # Priority is included because it exists in the
-        # current SkillBridge skills table.
         cursor.execute(
             """
             SELECT
@@ -296,10 +293,7 @@ def get_domain_skills(domain_id):
         )
 
         columns = [column[0] for column in cursor.description]
-        skills = [
-            dict(zip(columns, row))
-            for row in cursor.fetchall()
-        ]
+        skills = [dict(zip(columns, row)) for row in cursor.fetchall()]
 
         return jsonify({
             "success": True,
@@ -320,15 +314,6 @@ def get_domain_skills(domain_id):
 
 # ==========================================
 # GET QUESTIONS FOR A SKILL
-# Correct answers are NEVER sent to the frontend.
-#
-# Optional query parameters:
-# skill_id=5
-# difficulty=Basic
-# limit=20
-#
-# If no questions exist at the requested difficulty,
-# fall back to available questions for that skill.
 # ==========================================
 
 @app.route("/api/questions", methods=["GET"])
@@ -337,7 +322,6 @@ def get_questions():
     difficulty = request.args.get(
         "difficulty", default="Basic", type=str
     ).strip().title()
-
     limit = request.args.get("limit", default=20, type=int)
 
     if not skill_id or skill_id <= 0:
@@ -345,14 +329,12 @@ def get_questions():
 
     if difficulty not in ("Basic", "Intermediate", "Advanced"):
         return error_response(
-            "Difficulty must be Basic, Intermediate, or Advanced.",
-            400
+            "Difficulty must be Basic, Intermediate, or Advanced.", 400
         )
 
     if limit is None or limit < 1 or limit > 100:
         return error_response(
-            "Question limit must be between 1 and 100.",
-            400
+            "Question limit must be between 1 and 100.", 400
         )
 
     connection = None
@@ -365,15 +347,9 @@ def get_questions():
         cursor.execute(
             """
             SELECT
-                question_id,
-                skill_id,
-                question_text,
-                option_a,
-                option_b,
-                option_c,
-                option_d,
-                difficulty_level,
-                explanation
+                question_id, skill_id, question_text,
+                option_a, option_b, option_c, option_d,
+                difficulty_level, explanation
             FROM quiz_questions
             WHERE skill_id = %s
               AND LOWER(TRIM(COALESCE(difficulty_level, '')))
@@ -387,21 +363,13 @@ def get_questions():
         rows = cursor.fetchall()
         used_difficulty = difficulty
 
-        # Fallback: don't return an empty quiz if the skill
-        # has questions, but none at the requested difficulty.
         if not rows:
             cursor.execute(
                 """
                 SELECT
-                    question_id,
-                    skill_id,
-                    question_text,
-                    option_a,
-                    option_b,
-                    option_c,
-                    option_d,
-                    difficulty_level,
-                    explanation
+                    question_id, skill_id, question_text,
+                    option_a, option_b, option_c, option_d,
+                    difficulty_level, explanation
                 FROM quiz_questions
                 WHERE skill_id = %s
                 ORDER BY
@@ -416,17 +384,12 @@ def get_questions():
                 """,
                 (skill_id, limit)
             )
-
             rows = cursor.fetchall()
-
             if rows:
                 used_difficulty = "Mixed"
 
         columns = [column[0] for column in cursor.description]
-        questions = [
-            dict(zip(columns, row))
-            for row in rows
-        ]
+        questions = [dict(zip(columns, row)) for row in rows]
 
         return jsonify({
             "success": True,
@@ -447,14 +410,11 @@ def get_questions():
 
 # ==========================================
 # SUBMIT ASSESSMENT
-# Scores are calculated on the backend.
-# Results are stored in quiz_results.
 # ==========================================
 
 @app.route("/api/assessment/submit", methods=["POST"])
 def submit_assessment():
     data = request.get_json(silent=True) or {}
-
     answers = data.get("answers")
     user_id = data.get("user_id")
 
@@ -463,8 +423,7 @@ def submit_assessment():
 
     if len(answers) > 100:
         return error_response(
-            "A maximum of 100 answers can be submitted at once.",
-            400
+            "A maximum of 100 answers can be submitted at once.", 400
         )
 
     if user_id is not None:
@@ -494,10 +453,7 @@ def submit_assessment():
             return error_response("Invalid answer data.", 400)
 
         if question_id in submitted_answers:
-            return error_response(
-                "Duplicate questions submitted.",
-                400
-            )
+            return error_response("Duplicate questions submitted.", 400)
 
         submitted_answers[question_id] = choice.strip().upper()
 
@@ -511,23 +467,17 @@ def submit_assessment():
 
         cursor.execute(
             """
-            SELECT
-                question_id,
-                correct_answer,
-                skill_id,
-                difficulty_level
+            SELECT question_id, correct_answer, skill_id, difficulty_level
             FROM quiz_questions
             WHERE question_id = ANY(%s)
             """,
             (question_ids,)
         )
-
         rows = cursor.fetchall()
 
         if len(rows) != len(question_ids):
             return error_response(
-                "One or more questions were not found.",
-                400
+                "One or more questions were not found.", 400
             )
 
         details = {
@@ -539,24 +489,16 @@ def submit_assessment():
             for row in rows
         }
 
-        skill_ids = {
-            item["skill_id"]
-            for item in details.values()
-        }
+        skill_ids = {item["skill_id"] for item in details.values()}
 
         if len(skill_ids) != 1 or None in skill_ids:
             return error_response(
-                "All questions must belong to the same valid skill.",
-                400
+                "All questions must belong to the same valid skill.", 400
             )
 
         skill_id = next(iter(skill_ids))
-
         valid_levels = {"Basic", "Intermediate", "Advanced"}
-        levels = {
-            item["difficulty"]
-            for item in details.values()
-        }
+        levels = {item["difficulty"] for item in details.values()}
 
         if not levels.issubset(valid_levels):
             return error_response(
@@ -564,37 +506,26 @@ def submit_assessment():
                 400
             )
 
-        skill_level = (
-            next(iter(levels)) if len(levels) == 1 else "Mixed"
-        )
-
+        skill_level = next(iter(levels)) if len(levels) == 1 else "Mixed"
         score = sum(
-            1
-            for question_id, choice in submitted_answers.items()
+            1 for question_id, choice in submitted_answers.items()
             if details[question_id]["correct"] == choice
         )
-
         total = len(submitted_answers)
         percentage = round(score * 100 / total)
 
-        # Confirm the user exists before saving a result.
         if user_id is not None:
             cursor.execute(
                 "SELECT user_id FROM users WHERE user_id = %s",
                 (user_id,)
             )
-
             if not cursor.fetchone():
                 return error_response("User not found.", 404)
 
         cursor.execute(
             """
             INSERT INTO quiz_results (
-                user_id,
-                skill_id,
-                score,
-                total_questions,
-                skill_level
+                user_id, skill_id, score, total_questions, skill_level
             )
             VALUES (%s, %s, %s, %s, %s)
             RETURNING result_id, attempted_at
@@ -616,16 +547,13 @@ def submit_assessment():
             "total": total,
             "percentage": percentage,
             "attempted_at": (
-                saved_result[1].isoformat()
-                if saved_result[1]
-                else None
+                saved_result[1].isoformat() if saved_result[1] else None
             )
-        }), 200
+        })
 
     except Exception:
         if connection:
             connection.rollback()
-
         app.logger.exception("Assessment submission failed")
         return error_response(
             "Unable to evaluate and save the assessment."
@@ -637,9 +565,6 @@ def submit_assessment():
 
 # ==========================================
 # GET PROGRESS REPORT
-# GET /api/progress?user_id=1
-#
-# Uses actual saved assessment results.
 # ==========================================
 
 @app.route("/api/progress", methods=["GET"])
@@ -647,10 +572,7 @@ def get_progress():
     user_id = request.args.get("user_id", type=int)
 
     if not user_id or user_id <= 0:
-        return error_response(
-            "Please provide a valid user_id.",
-            400
-        )
+        return error_response("Please provide a valid user_id.", 400)
 
     connection = None
     cursor = None
@@ -660,10 +582,8 @@ def get_progress():
         cursor = connection.cursor()
 
         cursor.execute(
-            "SELECT user_id FROM users WHERE user_id = %s",
-            (user_id,)
+            "SELECT user_id FROM users WHERE user_id = %s", (user_id,)
         )
-
         if not cursor.fetchone():
             return error_response("User not found.", 404)
 
@@ -681,28 +601,19 @@ def get_progress():
                 COALESCE(SUM(qr.total_questions), 0) AS total_questions,
                 MAX(qr.attempted_at) AS last_attempt
             FROM skills s
-            LEFT JOIN career_domains d
-                ON d.domain_id = s.domain_id
+            LEFT JOIN career_domains d ON d.domain_id = s.domain_id
             LEFT JOIN quiz_results qr
-                ON qr.skill_id = s.skill_id
-               AND qr.user_id = %s
+                ON qr.skill_id = s.skill_id AND qr.user_id = %s
             GROUP BY
-                s.skill_id,
-                s.skill_name,
-                s.domain_id,
-                d.domain_name,
-                s.difficulty_level,
-                s.priority
+                s.skill_id, s.skill_name, s.domain_id,
+                d.domain_name, s.difficulty_level, s.priority
             ORDER BY d.domain_name, s.skill_name
             """,
             (user_id,)
         )
 
         columns = [column[0] for column in cursor.description]
-        rows = [
-            dict(zip(columns, row))
-            for row in cursor.fetchall()
-        ]
+        rows = [dict(zip(columns, row)) for row in cursor.fetchall()]
 
         for skill in rows:
             total_questions = skill["total_questions"]
@@ -710,8 +621,7 @@ def get_progress():
 
             skill["percentage"] = (
                 round(correct * 100 / total_questions)
-                if total_questions
-                else 0
+                if total_questions else 0
             )
 
             if skill["attempts"] == 0:
@@ -724,28 +634,19 @@ def get_progress():
                 skill["status"] = "Needs Improvement"
 
             if skill["last_attempt"]:
-                skill["last_attempt"] = (
-                    skill["last_attempt"].isoformat()
-                )
+                skill["last_attempt"] = skill["last_attempt"].isoformat()
 
-        attempted = [
-            skill for skill in rows
-            if skill["attempts"] > 0
-        ]
-
-        total_attempts = sum(
-            skill["attempts"] for skill in rows
+        attempted = [skill for skill in rows if skill["attempts"] > 0]
+        total_attempts = sum(skill["attempts"] for skill in rows)
+        attempted_questions = sum(
+            skill["total_questions"] for skill in attempted
         )
-
         overall_percentage = (
             round(
                 sum(skill["total_correct"] for skill in attempted)
-                * 100
-                / sum(skill["total_questions"] for skill in attempted)
+                * 100 / attempted_questions
             )
-            if attempted
-            and sum(skill["total_questions"] for skill in attempted) > 0
-            else 0
+            if attempted_questions else 0
         )
 
         return jsonify({
@@ -768,9 +669,6 @@ def get_progress():
 
 # ==========================================
 # GET LEARNING RESOURCES
-#
-# GET /api/resources?skill_id=5
-# Optional: &difficulty=Basic
 # ==========================================
 
 @app.route("/api/resources", methods=["GET"])
@@ -800,24 +698,17 @@ def get_resources():
             LEFT JOIN skills s ON s.skill_id = r.skill_id
             WHERE 1 = 1
         """
-
         params = []
 
         if skill_id is not None:
             if skill_id <= 0:
                 return error_response("Invalid skill_id.", 400)
-
             query += " AND r.skill_id = %s"
             params.append(skill_id)
 
         if difficulty:
-            if difficulty.title() not in (
-                "Basic", "Intermediate", "Advanced"
-            ):
-                return error_response(
-                    "Invalid difficulty level.",
-                    400
-                )
+            if difficulty.title() not in ("Basic", "Intermediate", "Advanced"):
+                return error_response("Invalid difficulty level.", 400)
 
             query += """
                 AND (
@@ -828,14 +719,10 @@ def get_resources():
             params.append(difficulty.title())
 
         query += " ORDER BY r.resource_title"
-
         cursor.execute(query, tuple(params))
 
         columns = [column[0] for column in cursor.description]
-        resources = [
-            dict(zip(columns, row))
-            for row in cursor.fetchall()
-        ]
+        resources = [dict(zip(columns, row)) for row in cursor.fetchall()]
 
         return jsonify({
             "success": True,
@@ -858,6 +745,6 @@ def get_resources():
 if __name__ == "__main__":
     app.run(
         host="0.0.0.0",
-        port=5000,
-        debug=True
+        port=int(os.getenv("PORT", 5000)),
+        debug=False
     )
