@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Choose Your Domain | SkillBridge</title>
-    <link rel="stylesheet" href="CSS/style.css">
+    <link rel="stylesheet" href="/style.css">
 
     <style>
         .domain-page {
@@ -38,35 +38,30 @@
         }
 
         .domain-card {
-            background: #ffffff;
+            background: #fff;
             border: 1px solid #e2e8f0;
             border-radius: 18px;
             padding: 25px 22px;
             cursor: pointer;
-            transition: transform 0.2s ease, border-color 0.2s ease,
-                        box-shadow 0.2s ease;
+            transition: transform .2s ease, border-color .2s ease,
+                        box-shadow .2s ease;
             display: flex;
             flex-direction: column;
             align-items: flex-start;
             min-height: 225px;
-            box-shadow: 0 4px 15px rgba(15, 23, 42, 0.04);
+            box-shadow: 0 4px 15px rgba(15, 23, 42, .04);
         }
 
         .domain-card:hover {
             transform: translateY(-4px);
             border-color: #6366f1;
-            box-shadow: 0 10px 25px rgba(79, 70, 229, 0.10);
+            box-shadow: 0 10px 25px rgba(79, 70, 229, .10);
         }
 
         .domain-card.selected {
             border: 2px solid #4f46e5;
             background: #f5f7ff;
-            box-shadow: 0 8px 24px rgba(79, 70, 229, 0.12);
-        }
-
-        .domain-card.unavailable-domain {
-            opacity: 0.55;
-            cursor: not-allowed;
+            box-shadow: 0 8px 24px rgba(79, 70, 229, .12);
         }
 
         .domain-icon {
@@ -110,12 +105,7 @@
         .domain-card.selected .domain-select-btn {
             background: #4f46e5;
             border-color: #4f46e5;
-            color: #ffffff;
-        }
-
-        .domain-select-btn:disabled {
-            cursor: not-allowed;
-            opacity: 0.6;
+            color: #fff;
         }
 
         .domain-footer {
@@ -146,19 +136,19 @@
             border-radius: 10px;
             padding: 13px 24px;
             background: #4f46e5;
-            color: #ffffff;
+            color: #fff;
             font-size: 15px;
             font-weight: 600;
             cursor: pointer;
         }
 
-        #continueSkillsBtn:hover:not(:disabled) {
-            background: #3730a3;
-        }
-
         #continueSkillsBtn:disabled {
             background: #a5b4fc;
             cursor: not-allowed;
+        }
+
+        #continueSkillsBtn:hover:not(:disabled) {
+            background: #3730a3;
         }
 
         @media (max-width: 900px) {
@@ -189,12 +179,9 @@
 </head>
 
 <body>
-
-    <!-- Navbar -->
     <header class="navbar">
         <div class="nav-container">
             <a href="index.html" class="logo">SkillBridge</a>
-
             <nav class="nav-links" aria-label="Main navigation">
                 <a href="index.html">Home</a>
                 <a href="domain.html">Explore Domains</a>
@@ -208,7 +195,6 @@
     </header>
 
     <main class="domain-page">
-
         <section class="domain-heading">
             <h1>Choose Your Career Domain</h1>
             <p>
@@ -219,7 +205,6 @@
         </section>
 
         <section class="domain-grid" aria-label="Career domains">
-
             <article class="domain-card" data-domain="Web Development">
                 <div class="domain-icon">🌐</div>
                 <h2>Web Development</h2>
@@ -303,7 +288,6 @@
                 <p>Combine statistics, programming and modelling to explore complex data.</p>
                 <button type="button" class="domain-select-btn">Select Domain</button>
             </article>
-
         </section>
 
         <section class="domain-footer">
@@ -317,10 +301,66 @@
                 Continue to Skills →
             </button>
         </section>
-
     </main>
 
-    <script src="JS/script.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const cards = document.querySelectorAll(".domain-card");
+            const selectedText = document.getElementById("selectedDomainText");
+            const continueButton = document.getElementById("continueSkillsBtn");
 
+            let selectedDomain = null;
+
+            cards.forEach(function (card) {
+                const selectButton = card.querySelector(".domain-select-btn");
+
+                function selectCard() {
+                    cards.forEach(function (otherCard) {
+                        otherCard.classList.remove("selected");
+                        const otherButton = otherCard.querySelector(".domain-select-btn");
+                        otherButton.textContent = "Select Domain";
+                        otherButton.setAttribute("aria-pressed", "false");
+                    });
+
+                    card.classList.add("selected");
+                    selectButton.textContent = "Selected ✓";
+                    selectButton.setAttribute("aria-pressed", "true");
+
+                    selectedDomain = card.dataset.domain;
+                    selectedText.textContent = selectedDomain;
+                    continueButton.disabled = false;
+
+                    localStorage.setItem("selectedDomain", selectedDomain);
+                }
+
+                selectButton.addEventListener("click", function (event) {
+                    event.stopPropagation();
+                    selectCard();
+                });
+
+                card.addEventListener("click", selectCard);
+            });
+
+            const savedDomain = localStorage.getItem("selectedDomain");
+
+            if (savedDomain) {
+                const savedCard = Array.from(cards).find(function (card) {
+                    return card.dataset.domain === savedDomain;
+                });
+
+                if (savedCard) {
+                    savedCard.querySelector(".domain-select-btn").click();
+                }
+            }
+
+            continueButton.addEventListener("click", function () {
+                if (!selectedDomain) {
+                    return;
+                }
+
+                window.location.href = "skills.html";
+            });
+        });
+    </script>
 </body>
 </html>
