@@ -1,102 +1,140 @@
-// =====================================================
-// SKILLBRIDGE - COMPLETE MAIN JAVASCRIPT
-// Domain Selection + Skills + Assessment + Progress
-// + Project Recommendations
-// =====================================================
 
+ // =====================================================
+ // SKILLBRIDGE - COMPLETE MAIN JAVASCRIPT
+ // Domain Selection + Skills + Assessment + Progress
+ // + Project Recommendations
+ // =====================================================
 
-// =====================================================
-// 1. COMMON NAVBAR / PAGE ACCESS
-// =====================================================
+ // =====================================================
+ // 1. COMMON NAVBAR / PAGE ACCESS
+ // =====================================================
 
-const projectLink = document.getElementById("projectLink");
+ const projectLink = document.getElementById("projectLink");
 
-if (projectLink) {
-    projectLink.addEventListener("click", function (event) {
-        if (localStorage.getItem("assessmentCompleted") !== "true") {
-            event.preventDefault();
-            alert("Please complete the Self-Assessment before opening Project Recommendation.");
-        }
-    });
-}
+ if (projectLink) {
+     projectLink.addEventListener("click", function (event) {
+         if (localStorage.getItem("assessmentCompleted") !== "true") {
+             event.preventDefault();
+             alert(
+                 "Please complete the Self-Assessment before opening Project Recommendation."
+             );
+         }
+     });
+ }
 
+ // =====================================================
+ // 2. API CONFIGURATION AND SHARED HELPERS
+ // =====================================================
 
-// =====================================================
-// 2. API CONFIGURATION AND SHARED HELPERS
-// =====================================================
+ const API_BASE = (
+     window.SKILLBRIDGE_API ||
+     (
+         window.location.protocol === "file:" ||
+         /:(5500|5501|3000)$/.test(window.location.host)
+             ? "http://127.0.0.1:5000"
+             : window.location.origin
+     )
+ ).replace(/\/$/, "");
 
-const API_BASE = (
-    window.SKILLBRIDGE_API ||
-    "http://127.0.0.1:5000"
-).replace(/\/$/, "");
+ let availableDomains = [];
+ let domainSkillsCache = {};
 
-let availableDomains = [];
-let domainSkillsCache = {};
+ // Safely read JSON data from localStorage.
+ function getStoredJSON(key, fallback = null) {
+     try {
+         const value = localStorage.getItem(key);
+         return value ? JSON.parse(value) : fallback;
+     } catch (error) {
+         console.error("Could not read saved data:", error);
+         return fallback;
+     }
+ }
 
-function getStoredJSON(key, fallback) {
-    try {
-        const value = localStorage.getItem(key);
-        return value ? JSON.parse(value) : fallback;
-    } catch (error) {
-        console.error("Could not read saved data:", error);
-        return fallback;
-    }
-}
+ // Normalize domain names before comparing them.
+ function normalizeDomainName(value) {
+     return String(value || "")
+         .trim()
+         .toLowerCase()
+         .replace(/\s+/g, " ");
+ }
 
-function escapeHTML(value) {
-    return String(value ?? "").replace(/[&<>"']/g, character => {
-        const entities = {
-            "&": "&amp;",
-            "<": "&lt;",
-            ">": "&gt;",
-            '"': "&quot;",
-            "'": "&#39;"
-        };
-        return entities[character];
-    });
-}
+ // Normalize skill difficulty levels.
+ function normalizeLevel(value) {
+     const level = String(value || "").trim().toLowerCase();
 
-async function apiJSON(url, options = {}) {
-    const response = await fetch(url, options);
+     if (level === "basic" || level === "beginner") {
+         return "basic";
+     }
 
-    let data;
+     if (level === "intermediate" || level === "medium") {
+         return "intermediate";
+     }
 
-    try {
-        data = await response.json();
-    } catch (error) {
-        throw new Error("The server did not return valid JSON.");
-    }
+     if (level === "advanced" || level === "expert") {
+         return "advanced";
+     }
 
-    if (!response.ok || data.success === false) {
-        throw new Error(
-            data.message || `Request failed (${response.status}).`
-        );
-    }
+     return level || "basic";
+ }
 
-    return data;
-}
+ // Escape dynamic text before inserting it into HTML.
+ function escapeHTML(value) {
+     return String(value ?? "").replace(/[&<>"']/g, character => {
+         const entities = {
+             "&": "&amp;",
+             "<": "&lt;",
+             ">": "&gt;",
+             '"': "&quot;",
+             "'": "&#39;"
+         };
 
-function normalizeLevel(level) {
-    const normalized = String(level || "").trim().toLowerCase();
+         return entities[character];
+     });
+ }
 
-    if (normalized.startsWith("basic")) return "basic";
-    if (normalized.startsWith("intermediate")) return "intermediate";
-    if (normalized.startsWith("advanced")) return "advanced";
+ // Fetch JSON from the Flask backend and report API errors.
+ async function apiJSON(url, options = {}) {
+     const response = await fetch(url, options);
 
-    return "basic";
-}
+     let data;
 
-function normalizeDomainName(value) {
-    return String(value || "").trim().toLowerCase();
-}
+     try {
+         data = await response.json();
+     } catch (error) {
+         throw new Error(
+             `Server returned an invalid response (HTTP ${response.status}).`
+         );
+     }
 
-function findDatabaseDomain(domainName) {
-    return availableDomains.find(
-        item =>
-            normalizeDomainName(item.domain_name) ===
-            normalizeDomainName(domainName)
-    );
-}
+     if (!response.ok || data.success === false) {
+         throw new Error(
+             data.message ||
+             data.error ||
+             `Request failed (HTTP ${response.status}).`
+         );
+     }
+
+     return data;
+ }
+
+ // Find a database domain by its name.
+ function findDatabaseDomain(domainName) {
+     const normalizedName = normalizeDomainName(domainName);
+
+     if (!normalizedName) {
+         return null;
+     }
+
+     return availableDomains.find(domain =>
+         normalizeDomainName(domain.domain_name) === normalizedName
+     ) || null;
+ }
+
+ // =====================================================
+ // SECTION 3 STARTS BELOW
+ // Keep your existing section 3 and all following code.
+ // =====================================================
+
 
 
 // =====================================================
